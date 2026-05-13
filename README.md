@@ -182,6 +182,21 @@ To build the production image locally:
 docker build -t ghcr.io/dcurlewis/overhearr:latest .
 ```
 
+### Cutting a release
+
+Multi-arch (amd64 + arm64) images are published to GHCR by
+[`.github/workflows/release.yml`](.github/workflows/release.yml) on tag
+push:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+# → publishes ghcr.io/dcurlewis/overhearr:1.0.0 + :1.0 + :1 + :latest
+```
+
+Manual `workflow_dispatch` runs publish a single `:edge` tag built from
+the current default branch.
+
 ## Architecture
 
 Overhearr is a hybrid Next.js + Express app. Express owns the runtime
