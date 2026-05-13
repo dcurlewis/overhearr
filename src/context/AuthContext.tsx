@@ -27,7 +27,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (err instanceof ApiError && err.status === 401) return false;
       return true;
     },
-    revalidateOnFocus: true,
+    // Don't revalidate /api/auth/me on tab focus. Users tab away constantly
+    // (e.g. to grab an API key from another app), and a fresh fetch returns
+    // a new object reference even when nothing has changed — that ripples
+    // through consumers as a context-value change and can clobber unsaved
+    // form state. Logout-in-another-tab is detected lazily on the next
+    // mutation that returns 401.
+    revalidateOnFocus: false,
     refreshInterval: 0,
   });
 

@@ -17,10 +17,15 @@ const SETUP_KEY = '/api/setup/status';
 export const SetupProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  // Don't revalidate setup-status on tab focus. The status only flips at
+  // most twice per install lifetime (admin created, then setup completed).
+  // Tab-focus revalidation produces a fresh `data` object reference, which
+  // ripples through context consumers and triggers form-killing rerenders
+  // mid-wizard if the user tabs away to copy a Lidarr URL/API key.
   const { data, isLoading, mutate } = useSWR<SetupStatusResponse>(
     SETUP_KEY,
     swrFetcher,
-    { revalidateOnFocus: true, refreshInterval: 0 }
+    { revalidateOnFocus: false, refreshInterval: 0 }
   );
 
   const value = useMemo<SetupContextValue>(
