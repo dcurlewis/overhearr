@@ -53,7 +53,22 @@ export function buildApp(options: BuildAppOptions = {}): BuiltApp {
   app.set('trust proxy', env.TRUST_PROXY);
 
   app.use(requestLogger);
-  app.use(helmet());
+  // Helmet defaults are too strict for a Next.js app served over plain HTTP
+  // behind an optional reverse proxy:
+  //  - The default CSP ('script-src self') blocks Next's inline hydration
+  //    scripts and our FOUC theme suppression script in _document.tsx.
+  //  - cross-origin-opener-policy and origin-agent-cluster require HTTPS to
+  //    take effect; over HTTP they log noisy console warnings.
+  // We keep everything else helmet hardens (X-Frame-Options, no-sniff, etc).
+  // For a public-internet deploy, terminate TLS at a reverse proxy (nginx,
+  // Caddy, Cloudflare) and let it set its own CSP / HSTS / COOP headers.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginOpenerPolicy: false,
+      originAgentCluster: false,
+    })
+  );
   app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
