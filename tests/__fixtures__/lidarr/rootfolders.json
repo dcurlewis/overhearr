@@ -1,0 +1,4 @@
+[
+  { "id": 1, "path": "/music", "freeSpace": 1099511627776, "accessible": true },
+  { "id": 2, "path": "/music-flac", "freeSpace": 549755813888, "accessible": true }
+]

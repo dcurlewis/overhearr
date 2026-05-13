@@ -1,0 +1,21 @@
+{
+  "created": "2026-05-13T00:00:00.000Z",
+  "count": 2,
+  "offset": 0,
+  "artists": [
+    {
+      "id": "radiohead-mbid",
+      "name": "Radiohead",
+      "sort-name": "Radiohead",
+      "country": "GB",
+      "type": "Group",
+      "disambiguation": "English rock band"
+    },
+    {
+      "id": "another-mbid",
+      "name": "Radiohead Tribute",
+      "sort-name": "Radiohead Tribute",
+      "type": "Group"
+    }
+  ]
+}

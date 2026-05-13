@@ -1,0 +1,87 @@
+// Settings is enforced as a singleton at the service layer (id always = 1).
+// SQLite lacks proper CHECK enforcement via Prisma — see SettingsService.
+//
+// Prisma's SQLite connector does not support `enum` declarations. The fields
+// below that would otherwise be enums (User.role, MusicRequest.type,
+// MusicRequest.status) are stored as plain strings; the allowed values are
+// enforced at the service/Zod layer. See server/types for the TS unions.
+//   UserRole       = "ADMIN" | "USER"
+//   RequestType    = "ALBUM" | "ARTIST"
+//   RequestStatus  = "PENDING" | "PROCESSING" | "AVAILABLE" | "FAILED"
+
+generator client {
+  provider = "prisma-client-js"
+  // Engines we need at runtime:
+  //   - native:                          host arch (local dev on macOS/linux)
+  //   - linux-musl-openssl-3.0.x:        amd64 alpine container (Unraid)
+  //   - linux-musl-arm64-openssl-3.0.x:  arm64 alpine container (Apple Silicon, Pi)
+  // Pinned to openssl-3.0.x because alpine >=3.21 ships only OpenSSL 3.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("USER") // UserRole: ADMIN | USER
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  requests MusicRequest[]
+  sessions Session[]
+}
+
+model Session {
+  id        String   @id
+  userId    Int?
+  expiresAt DateTime
+  data      String
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model Settings {
+  id                      Int      @id @default(1)
+  lidarrUrl               String?
+  lidarrApiKeyEncrypted   String?
+  lidarrRootFolderPath    String?
+  lidarrQualityProfileId  Int?
+  lidarrMetadataProfileId Int?
+  lastfmApiKeyEncrypted   String?
+  setupCompleted          Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model MusicRequest {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  type           String // RequestType: ALBUM | ARTIST
+  mbid           String
+  name           String
+  artistName     String?
+  coverArtUrl    String?
+  releaseDate    DateTime?
+  status         String    @default("PENDING") // RequestStatus: PENDING | PROCESSING | AVAILABLE | FAILED
+  lidarrAlbumId  Int?
+  lidarrArtistId Int?
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mbid, type])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([mbid, type])
+  @@index([status])
+}

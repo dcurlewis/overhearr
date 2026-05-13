@@ -1,0 +1,70 @@
+{
+  "created": "2026-05-13T00:00:00.000Z",
+  "count": 4,
+  "offset": 0,
+  "releases": [
+    {
+      "id": "release-rainbows-001",
+      "title": "In Rainbows",
+      "status": "Official",
+      "date": "2007-12-28",
+      "country": "GB",
+      "artist-credit": [
+        { "name": "Radiohead", "artist": { "id": "radiohead-mbid", "name": "Radiohead", "sort-name": "Radiohead" } }
+      ],
+      "release-group": {
+        "id": "rg-rainbows",
+        "title": "In Rainbows",
+        "primary-type": "Album",
+        "first-release-date": "2007-10-10"
+      }
+    },
+    {
+      "id": "release-rainbows-002",
+      "title": "In Rainbows",
+      "status": "Promotion",
+      "date": "2007-10-10",
+      "country": "GB",
+      "artist-credit": [
+        { "name": "Radiohead", "artist": { "id": "radiohead-mbid", "name": "Radiohead" } }
+      ],
+      "release-group": {
+        "id": "rg-rainbows",
+        "title": "In Rainbows",
+        "primary-type": "Album",
+        "first-release-date": "2007-10-10"
+      }
+    },
+    {
+      "id": "release-rainbows-disc2",
+      "title": "In Rainbows: Disc 2",
+      "status": "Official",
+      "date": "2007-12-03",
+      "country": "GB",
+      "artist-credit": [
+        { "name": "Radiohead", "artist": { "id": "radiohead-mbid", "name": "Radiohead" } }
+      ],
+      "release-group": {
+        "id": "rg-rainbows-disc2",
+        "title": "In Rainbows: Disc 2",
+        "primary-type": "Album",
+        "secondary-types": ["Compilation"],
+        "first-release-date": "2007-12-03"
+      }
+    },
+    {
+      "id": "release-from-the-basement",
+      "title": "In Rainbows: From The Basement",
+      "status": "Bootleg",
+      "date": "2008-01-01",
+      "artist-credit": [
+        { "name": "Radiohead", "artist": { "id": "radiohead-mbid", "name": "Radiohead" } }
+      ],
+      "release-group": {
+        "id": "rg-rainbows-basement",
+        "title": "From The Basement",
+        "primary-type": "Other"
+      }
+    }
+  ]
+}

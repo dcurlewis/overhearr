@@ -1,0 +1,25 @@
+{
+  "id": "rg-fallback",
+  "title": "Fallback Album",
+  "primary-type": "Album",
+  "releases": [
+    {
+      "id": "release-fallback-bootleg",
+      "title": "Fallback Album (Bootleg)",
+      "status": "Bootleg",
+      "date": "2010-05-05"
+    },
+    {
+      "id": "release-fallback-canonical",
+      "title": "Fallback Album",
+      "status": "Official",
+      "date": "2009-03-15"
+    },
+    {
+      "id": "release-fallback-reissue",
+      "title": "Fallback Album (Remastered)",
+      "status": "Official",
+      "date": "2019-06-20"
+    }
+  ]
+}

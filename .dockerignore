@@ -1,0 +1,78 @@
+# Build context exclusions for `docker build`.
+#
+# Everything below is either rebuilt inside the image or shouldn't ever
+# leave the developer's machine. Keep this list aggressive — every MB
+# saved here is a faster build and a smaller layer cache to invalidate.
+
+# --- VCS / editor / OS ---
+.git
+.github
+.gitignore
+.gitattributes
+.vscode
+.idea
+.DS_Store
+
+# --- Local env (never bake secrets into images) ---
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.docker
+# .env.example and .env.docker.example ARE shipped (referenced in docs).
+
+# --- Build artifacts (regenerated in the image) ---
+node_modules
+.next
+dist
+out
+build
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+.eslintcache
+
+# --- Test / coverage output ---
+coverage
+playwright-report
+test-results
+blob-report
+playwright/.cache
+tests/e2e/__screenshots__
+
+# --- Tests + test config (not needed at runtime) ---
+tests
+vitest.config.ts
+playwright.config.ts
+
+# --- Logs ---
+*.log
+server.log
+config/logs
+
+# --- Dev-only data ---
+config/db
+config/cache
+config/settings.json
+config/anime-list.xml
+
+# --- Docs (docker image doesn't need them) ---
+*.md
+!README.md
+docs
+
+# --- Misc ---
+.dev-server.pid
+dev-server.log
+*.pem
+.vercel
+cypress.env.json
+cypress/videos
+cypress/screenshots
+
+# --- Reference / scratch dirs (legacy Overseerr is OUTSIDE build context;
+#     listed here defensively in case build context is ever widened) ---
+_ForReference_Overseerr

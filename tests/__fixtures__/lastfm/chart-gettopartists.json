@@ -1,0 +1,36 @@
+{
+  "artists": {
+    "artist": [
+      {
+        "name": "Radiohead",
+        "playcount": "987654321",
+        "listeners": "5000000",
+        "mbid": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+        "url": "https://www.last.fm/music/Radiohead",
+        "streamable": "0",
+        "image": [
+          { "#text": "https://lastfm.example/r-small.png", "size": "small" },
+          { "#text": "https://lastfm.example/r-medium.png", "size": "medium" },
+          { "#text": "https://lastfm.example/r-large.png", "size": "large" },
+          { "#text": "https://lastfm.example/r-xl.png", "size": "extralarge" },
+          { "#text": "https://lastfm.example/r-mega.png", "size": "mega" }
+        ],
+        "@attr": { "rank": "1" }
+      },
+      {
+        "name": "Nameless",
+        "playcount": "100",
+        "listeners": "10",
+        "url": "https://www.last.fm/music/Nameless",
+        "image": [],
+        "@attr": { "rank": "2" }
+      }
+    ],
+    "@attr": {
+      "page": "1",
+      "perPage": "2",
+      "totalPages": "100",
+      "total": "200"
+    }
+  }
+}

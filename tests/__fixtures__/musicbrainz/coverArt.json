@@ -1,0 +1,18 @@
+{
+  "release": "https://musicbrainz.org/release/release-rainbows-001",
+  "images": [
+    {
+      "id": 1,
+      "image": "https://coverartarchive.org/release/release-rainbows-001/front.jpg",
+      "front": true,
+      "back": false,
+      "thumbnails": {
+        "small": "https://coverartarchive.org/release/release-rainbows-001/front-250.jpg",
+        "large": "https://coverartarchive.org/release/release-rainbows-001/front-500.jpg",
+        "250": "https://coverartarchive.org/release/release-rainbows-001/front-250.jpg",
+        "500": "https://coverartarchive.org/release/release-rainbows-001/front-500.jpg",
+        "1200": "https://coverartarchive.org/release/release-rainbows-001/front-1200.jpg"
+      }
+    }
+  ]
+}

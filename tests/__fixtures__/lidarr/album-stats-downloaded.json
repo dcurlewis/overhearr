@@ -1,0 +1,12 @@
+{
+  "id": 555,
+  "title": "In Rainbows",
+  "foreignAlbumId": "b1392450-e666-3926-a536-22c65f834433",
+  "artistId": 99,
+  "monitored": true,
+  "anyReleaseOk": true,
+  "statistics": {
+    "trackFileCount": 10,
+    "trackCount": 10
+  }
+}

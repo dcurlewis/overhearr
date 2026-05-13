@@ -1,0 +1,44 @@
+{
+  "id": "release-rainbows-001",
+  "title": "In Rainbows",
+  "status": "Official",
+  "date": "2007-12-28",
+  "country": "GB",
+  "artist-credit": [
+    {
+      "name": "Radiohead",
+      "artist": {
+        "id": "radiohead-mbid",
+        "name": "Radiohead",
+        "sort-name": "Radiohead"
+      }
+    }
+  ],
+  "release-group": {
+    "id": "rg-rainbows",
+    "title": "In Rainbows",
+    "primary-type": "Album",
+    "first-release-date": "2007-10-10"
+  },
+  "media": [
+    {
+      "track-count": 2,
+      "tracks": [
+        {
+          "id": "track-1",
+          "position": 1,
+          "title": "15 Step",
+          "length": 237000,
+          "recording": { "id": "rec-15step", "title": "15 Step", "length": 237000 }
+        },
+        {
+          "id": "track-2",
+          "position": 2,
+          "title": "Bodysnatchers",
+          "length": 242000,
+          "recording": { "id": "rec-body", "title": "Bodysnatchers", "length": 242000 }
+        }
+      ]
+    }
+  ]
+}

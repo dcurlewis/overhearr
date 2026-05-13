@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<!--
+  Overhearr Unraid Community Apps template.
+
+  The <Repository> below points at GitHub Container Registry. Either:
+
+    a) Pull the published image:
+         docker pull ghcr.io/dcurlewis/overhearr:latest
+
+    b) Build locally on Unraid and tag to match this template:
+         git clone https://github.com/dcurlewis/overhearr /mnt/user/appdata/overhearr-src
+         cd /mnt/user/appdata/overhearr-src
+         docker build -t ghcr.io/dcurlewis/overhearr:latest .
+
+  The form fields below are what the user sees in the Unraid template UI
+  when adding the container.
+-->
+<Container version="2">
+  <Name>Overhearr</Name>
+  <Repository>ghcr.io/dcurlewis/overhearr:latest</Repository>
+  <Registry>https://github.com/dcurlewis/overhearr/pkgs/container/overhearr</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/dcurlewis/overhearr/issues</Support>
+  <Project>https://github.com/dcurlewis/overhearr</Project>
+  <Overview>Overhearr is a self-hosted music request manager for Lidarr, in the spirit of Overseerr. Browse what's hot on Last.fm, search MusicBrainz, and one-click an album or whole discography into your Lidarr library. Supports multi-user accounts, encrypted credential storage, and a background reconciliation worker that tracks request status from PENDING through AVAILABLE.</Overview>
+  <Category>MediaApp:Music</Category>
+  <WebUI>http://[IP]:[PORT:5056]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/dcurlewis/overhearr/main/unraid/overhearr.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/dcurlewis/overhearr/main/public/overhearr.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>Overhearr is a self-hosted music request manager for Lidarr.
+
+Features:
+- Discover trending albums via Last.fm
+- Search MusicBrainz for any artist or album
+- One-click request an album or full discography
+- Background reconciliation tracks each request from PENDING -> PROCESSING -> AVAILABLE
+- Multi-user with admin/standard roles
+- Encrypted Lidarr / Last.fm API key storage (AES-256-GCM)
+- Mobile-friendly responsive UI with light/dark theme
+
+Required: a running Lidarr instance and (for Discover) a free Last.fm API key.
+
+The container runs internally as uid/gid 1000:1000. Make sure /mnt/user/appdata/overhearr is owned by 1000:1000 before first start.</Description>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>5056</HostPort>
+        <ContainerPort>5056</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/overhearr</HostDir>
+      <ContainerDir>/config</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <Environment>
+    <Variable>
+      <Value/>
+      <Name>SESSION_SECRET</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value/>
+      <Name>ENCRYPTION_KEY</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>info</Value>
+      <Name>LOG_LEVEL</Name>
+      <Mode/>
+    </Variable>
+    <Variable>
+      <Value>false</Value>
+      <Name>TRUST_PROXY</Name>
+      <Mode/>
+    </Variable>
+  </Environment>
+  <Labels/>
+  <Config Name="WebUI port" Target="5056" Default="5056" Mode="tcp" Description="HTTP port the Overhearr web UI listens on. Change the host side if 5056 is already taken." Type="Port" Display="always" Required="true" Mask="false">5056</Config>
+  <Config Name="Config volume" Target="/config" Default="/mnt/user/appdata/overhearr" Mode="rw" Description="Persistent storage for the SQLite database and future cache files. The host directory MUST be chowned to 1000:1000 before first start, e.g.: chown -R 1000:1000 /mnt/user/appdata/overhearr" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/overhearr</Config>
+  <Config Name="Session secret" Target="SESSION_SECRET" Default="" Mode="" Description="64-char hex string used to sign session cookies. Generate with: openssl rand -hex 32" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="Encryption key" Target="ENCRYPTION_KEY" Default="" Mode="" Description="64-char hex string (32 bytes) used to encrypt the Lidarr/Last.fm API keys at rest. Generate with: openssl rand -hex 32. Rotating this AFTER initial setup invalidates stored credentials." Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="Log level" Target="LOG_LEVEL" Default="info" Mode="" Description="Pino log verbosity: fatal | error | warn | info | debug | trace" Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
+  <Config Name="Trust proxy" Target="TRUST_PROXY" Default="false" Mode="" Description="Set to true if Overhearr is behind nginx, Traefik, SWAG, or Cloudflare so Express trusts X-Forwarded-* headers. Required for secure cookies + correct client IPs through a reverse proxy." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+</Container>

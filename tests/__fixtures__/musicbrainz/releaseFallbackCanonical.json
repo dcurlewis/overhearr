@@ -1,0 +1,35 @@
+{
+  "id": "release-fallback-canonical",
+  "title": "Fallback Album",
+  "status": "Official",
+  "date": "2009-03-15",
+  "artist-credit": [
+    {
+      "name": "Test Artist",
+      "artist": {
+        "id": "artist-fallback",
+        "name": "Test Artist",
+        "sort-name": "Test Artist"
+      }
+    }
+  ],
+  "release-group": {
+    "id": "rg-fallback",
+    "title": "Fallback Album",
+    "primary-type": "Album",
+    "first-release-date": "2009-03-15"
+  },
+  "media": [
+    {
+      "track-count": 1,
+      "tracks": [
+        {
+          "id": "track-fallback-1",
+          "position": 1,
+          "title": "Track One",
+          "length": 180000
+        }
+      ]
+    }
+  ]
+}

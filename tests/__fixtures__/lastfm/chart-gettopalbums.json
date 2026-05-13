@@ -1,0 +1,48 @@
+{
+  "topalbums": {
+    "album": [
+      {
+        "name": "Currents",
+        "playcount": "12345678",
+        "listeners": "999000",
+        "mbid": "ad010f4f-aa3a-4abb-a8a8-09c819a8e9d3",
+        "url": "https://www.last.fm/music/Tame+Impala/Currents",
+        "artist": {
+          "name": "Tame Impala",
+          "mbid": "63aa26c3-d59b-4da4-84ac-716b54f1ef4d",
+          "url": "https://www.last.fm/music/Tame+Impala"
+        },
+        "image": [
+          { "#text": "https://lastfm.example/small.png", "size": "small" },
+          { "#text": "https://lastfm.example/medium.png", "size": "medium" },
+          { "#text": "https://lastfm.example/large.png", "size": "large" },
+          { "#text": "https://lastfm.example/xl.png", "size": "extralarge" }
+        ],
+        "@attr": { "rank": "1" }
+      },
+      {
+        "name": "Untitled (No MBID)",
+        "playcount": "5000",
+        "listeners": "1234",
+        "mbid": "",
+        "url": "https://www.last.fm/music/Unknown/Untitled",
+        "artist": {
+          "name": "Some Artist",
+          "mbid": "",
+          "url": "https://www.last.fm/music/Some+Artist"
+        },
+        "image": [
+          { "#text": "https://lastfm.example/sm2.png", "size": "small" },
+          { "#text": "", "size": "extralarge" }
+        ],
+        "@attr": { "rank": "2" }
+      }
+    ],
+    "@attr": {
+      "page": "1",
+      "perPage": "2",
+      "totalPages": "100",
+      "total": "200"
+    }
+  }
+}
