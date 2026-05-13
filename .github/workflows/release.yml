@@ -2,9 +2,14 @@ name: Release
 
 # Build a multi-arch (amd64 + arm64) image and publish to GHCR.
 #
+# Each arch builds on a NATIVE runner (no QEMU emulation) — emulated arm64
+# `npm ci` with native deps like bcrypt + prisma engines was taking 3+ hours.
+# The native arm64 runner (ubuntu-24.04-arm, free for public repos) finishes
+# in ~5 min.
+#
 # Triggers:
-#   - Push of a `v*` tag (e.g. `v1.0.0`) → publishes `:1.0.0` + `:1.0` + `:1` + `:latest`
-#   - Manual via `workflow_dispatch` → publishes `:edge` only (no version tags)
+#   - Push of a `v*` tag (e.g. `v1.0.0`) → publishes :1.0.0 + :1.0 + :1 + :latest
+#   - Manual via `workflow_dispatch` → publishes :edge
 
 on:
   push:
@@ -21,14 +26,20 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  # 1. Build per-arch images and push them by digest only (no tags yet).
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -40,33 +51,82 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute platform-pair (for cache key)
+        id: pp
+        run: echo "pair=$(echo '${{ matrix.platform }}' | tr / -)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.title=Overhearr
+            org.opencontainers.image.description=Self-hosted music request manager for Lidarr.
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ steps.pp.outputs.pair }}
+          cache-to: type=gha,mode=max,scope=${{ steps.pp.outputs.pair }}
+          provenance: false
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ steps.pp.outputs.pair }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # 2. Combine the per-arch images into a single multi-arch manifest list
+  #    under the proper tags (:1.2.3, :1.2, :1, :latest, or :edge).
+  merge:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Compute image tags
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          # `v1.2.3` tag → :1.2.3, :1.2, :1, :latest
-          # manual run → :edge
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=edge,enable=${{ github.event_name == 'workflow_dispatch' }}
-          labels: |
-            org.opencontainers.image.title=Overhearr
-            org.opencontainers.image.description=Self-hosted music request manager for Lidarr.
-            org.opencontainers.image.licenses=MIT
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
