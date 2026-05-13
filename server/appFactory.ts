@@ -5,7 +5,7 @@ import express, { type Express } from 'express';
 import session from 'express-session';
 import helmet from 'helmet';
 
-import { env, isProduction } from './config/env';
+import { env } from './config/env';
 import { apiNotFoundHandler, errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { PrismaSessionStore } from './middleware/sessionStore';
@@ -84,7 +84,16 @@ export function buildApp(options: BuildAppOptions = {}): BuiltApp {
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: isProduction,
+        // 'auto' makes the Secure flag follow the actual request protocol.
+        // - LAN-direct HTTP (no proxy): cookie not Secure → sent over HTTP. ✓
+        // - Behind a TLS-terminating proxy with TRUST_PROXY=true: req.secure
+        //   reflects X-Forwarded-Proto, so the cookie is Secure when the
+        //   public origin is HTTPS. ✓
+        // - Direct HTTPS: cookie Secure. ✓
+        // The previous `secure: isProduction` broke LAN-only HTTP installs:
+        // browsers refused to send Secure cookies over HTTP, so every request
+        // after login looked anonymous and 401'd.
+        secure: 'auto',
         maxAge: SESSION_MAX_AGE_MS,
       },
     })
