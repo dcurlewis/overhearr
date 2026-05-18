@@ -12,9 +12,7 @@
  * options bag so tests can inject a small `minIntervalMs` and short TTLs.
  */
 
-import { readFileSync } from 'fs';
 import https from 'https';
-import path from 'path';
 
 import axios, { type AxiosError, type AxiosInstance } from 'axios';
 import { LRUCache } from 'lru-cache';
@@ -25,6 +23,7 @@ import {
   MusicBrainzUnreachableError,
 } from '../../lib/errors';
 import { logger } from '../../lib/logger';
+import { buildUserAgent } from '../../lib/packageVersion';
 import { RateLimitQueue } from '../../lib/rateLimitQueue';
 import type { DiscoverAlbum } from '../../types/discover';
 import type {
@@ -148,19 +147,7 @@ const DEFAULT_TIMEOUT = 15_000;
 
 const log = logger.child({ name: 'musicbrainz' });
 
-function readPackageVersion(): string {
-  try {
-    const pkgPath = path.resolve(__dirname, '../../../package.json');
-    const raw = readFileSync(pkgPath, 'utf8');
-    const parsed = JSON.parse(raw) as { version?: string };
-    return parsed.version ?? '0.0.0';
-  } catch {
-    return '0.0.0';
-  }
-}
-
-const PACKAGE_VERSION = readPackageVersion();
-const DEFAULT_USER_AGENT = `Overhearr/${PACKAGE_VERSION} ( https://github.com/dcurlewis/overhearr )`;
+const DEFAULT_USER_AGENT = buildUserAgent(__dirname);
 
 export class MusicBrainzClient {
   private readonly axios: AxiosInstance;

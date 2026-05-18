@@ -1,6 +1,6 @@
 import { http, HttpResponse, type DefaultBodyType, type StrictRequest } from 'msw';
 import { setupServer } from 'msw/node';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   MusicBrainzNotFoundError,
@@ -493,6 +493,52 @@ describe('MusicBrainzClient.getRecentReleaseGroups', () => {
     // Different limit → different cache key.
     await client.getRecentReleaseGroups({ monthsBack: 1, limit: 6 });
     expect(counters.releaseGroupSearch).toBe(2);
+  });
+
+  it('clamps end-of-month start dates instead of overshooting (May 31 -1 month -> April 30)', async () => {
+    // Regression for a reviewer concern about `Date#setMonth()` overflow.
+    // Modern V8 (Node 20+, our minimum) clamps the day when the resulting
+    // month is shorter than the source month — i.e. May 31 minus 1 month
+    // lands on April 30, NOT May 1. We pin that here so a future runtime
+    // downgrade or a refactor can't silently re-introduce the bug.
+    let capturedQuery: string | null = null;
+    server.use(
+      http.get(`${MB_BASE}/release-group`, ({ request }) => {
+        counters.releaseGroupSearch += 1;
+        capturedQuery = new URL(request.url).searchParams.get('query');
+        return HttpResponse.json({ count: 0, 'release-groups': [] });
+      })
+    );
+
+    vi.useFakeTimers();
+    try {
+      // Anchor "today" on May 31 so monthsBack=1 hits the overflow case.
+      vi.setSystemTime(new Date('2026-05-31T12:00:00Z'));
+      const client = makeClient();
+      await client.getRecentReleaseGroups({ monthsBack: 1, limit: 5 });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(capturedQuery).toBe(
+      'primarytype:Album AND firstreleasedate:[2026-04-30 TO 2026-05-31]'
+    );
+
+    // Run the same scenario at March 31 to cover the shorter-Feb edge.
+    capturedQuery = null;
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-03-31T12:00:00Z'));
+      const client = makeClient();
+      await client.getRecentReleaseGroups({ monthsBack: 1, limit: 5 });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    // 2026 is not a leap year; Feb has 28 days.
+    expect(capturedQuery).toBe(
+      'primarytype:Album AND firstreleasedate:[2026-02-28 TO 2026-03-31]'
+    );
   });
 
   it('survives missing first-release-date (those rows sink to the bottom)', async () => {

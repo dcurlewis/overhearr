@@ -26,6 +26,7 @@ import axios, { type AxiosError, type AxiosInstance } from 'axios';
 import { LRUCache } from 'lru-cache';
 
 import { getLogger } from '../../lib/logger';
+import { buildUserAgent } from '../../lib/packageVersion';
 import type { DiscoverAlbum, DiscoverArtist } from '../../types/discover';
 import { ListenBrainzUnreachableError } from './errors';
 
@@ -241,15 +242,8 @@ export class ListenBrainzClient {
 
 // ---- singleton ------------------------------------------------------------
 
-const PACKAGE_NAME_FOR_UA = 'Overhearr';
-// Match the MusicBrainz client's UA convention; ListenBrainz asks for an
-// identifying UA on every call.
-function defaultUserAgent(): string {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const pkg = require('../../../package.json') as { version?: string };
-  return `${PACKAGE_NAME_FOR_UA}/${pkg.version ?? '0.0.0'} ( https://github.com/dcurlewis/overhearr )`;
-}
-
+// ListenBrainz asks for an identifying UA on every call. `buildUserAgent`
+// reads `package.json` lazily and tolerates the dist/runtime layouts.
 export const listenbrainz = new ListenBrainzClient({
-  userAgent: defaultUserAgent(),
+  userAgent: buildUserAgent(__dirname),
 });
