@@ -56,7 +56,6 @@ model Settings {
   lidarrRootFolderPath    String?
   lidarrQualityProfileId  Int?
   lidarrMetadataProfileId Int?
-  lastfmApiKeyEncrypted   String?
   setupCompleted          Boolean  @default(false)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt

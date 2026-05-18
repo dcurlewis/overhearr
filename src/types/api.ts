@@ -2,12 +2,11 @@
  * Shared API contract types.
  *
  * Lives in `src/` (not `server/`) so that both the Next.js Pages Router
- * frontend (Phase 5+) and the Express backend can import the same shapes
- * with a single canonical path. The `@/types/api` import works from
- * frontend code; backend route handlers import via the relative path
- * `../../src/types/api`.
+ * frontend and the Express backend can import the same shapes with a single
+ * canonical path. The `@/types/api` import works from frontend code;
+ * backend route handlers import via the relative path `../../src/types/api`.
  *
- * Domain types (`Album`, `Artist`, `ArtistDetails`, `LastfmAlbum`, …) are
+ * Domain types (`Album`, `Artist`, `ArtistDetails`, `DiscoverAlbum`, …) are
  * authored in `server/types/*` because they describe what the upstream
  * clients return. We re-export them here so frontend code never has to
  * reach into `server/`.
@@ -23,10 +22,10 @@ import type {
   ReleaseGroupPrimaryType,
 } from '../../server/types/musicbrainz';
 import type {
+  DiscoverAlbum,
+  DiscoverArtist,
   DiscoverData,
-  LastfmAlbum,
-  LastfmArtist,
-} from '../../server/types/lastfm';
+} from '../../server/types/discover';
 import type { PublicUser, UserRole } from '../../server/types/domain';
 
 // Re-export underlying types so `@/types/api` is a single import surface.
@@ -38,9 +37,9 @@ export type {
   Track,
   MusicBrainzSearchResult,
   ReleaseGroupPrimaryType,
+  DiscoverAlbum,
+  DiscoverArtist,
   DiscoverData,
-  LastfmAlbum,
-  LastfmArtist,
   PublicUser,
   UserRole,
 };
@@ -124,27 +123,25 @@ export type ArtistDetail = Omit<ArtistDetails, 'releaseGroups'> & {
 
 // ---- Discover --------------------------------------------------------------
 
-export type LastfmAlbumWithStatus = LastfmAlbum & {
+export type DiscoverAlbumWithStatus = DiscoverAlbum & {
   /** Only present when the row carries a usable mbid. */
   requestStatus?: RequestStatusInfo;
 };
 
-export type LastfmArtistWithStatus = LastfmArtist & {
+export type DiscoverArtistWithStatus = DiscoverArtist & {
   requestStatus?: RequestStatusInfo;
 };
 
 /**
- * Discover payload. When `configured` is `false` (Last.fm key not set in
- * Settings), the three list arrays are guaranteed empty — the frontend
- * renders an empty-state with a "Configure Last.fm" CTA. We deliberately
- * return 200 + configured:false rather than 503 because "no key yet" is a
- * normal first-run state, not an error.
+ * Discover payload. Sourced from ListenBrainz (charts) and MusicBrainz
+ * (recent releases) — both are zero-config public APIs, so Discover always
+ * has data on a fresh install. Per-section upstream failures degrade to an
+ * empty array rather than blanking the whole page.
  */
 export interface DiscoverPayload {
-  configured: boolean;
-  topAlbums: LastfmAlbumWithStatus[];
-  topArtists: LastfmArtistWithStatus[];
-  newReleases: LastfmAlbumWithStatus[];
+  topAlbums: DiscoverAlbumWithStatus[];
+  topArtists: DiscoverArtistWithStatus[];
+  newReleases: DiscoverAlbumWithStatus[];
 }
 
 // ---- Music request rows ----------------------------------------------------

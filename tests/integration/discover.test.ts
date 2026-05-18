@@ -1,10 +1,13 @@
 /**
  * Integration tests for /api/discover.
  *
- * The Last.fm singleton (`server/api/lastfm/index.ts`) reads its API key
- * lazily via `settingsService.getDecryptedLastfmKey()` on every call, so
- * we control "configured vs. not" by setting (or omitting) the key in
- * Settings between tests.
+ * Both upstreams (ListenBrainz + MusicBrainz) are anonymous public APIs, so
+ * we never need to manipulate Settings — only swap the msw handlers.
+ *
+ * The real ListenBrainz client uses `https://api.listenbrainz.org`; the real
+ * MusicBrainz client uses `https://musicbrainz.org/ws/2`. We register msw
+ * handlers at those URLs so the singletons used by the route resolve to our
+ * fakes without test-only injection.
  */
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
@@ -18,7 +21,8 @@ import {
   it,
 } from 'vitest';
 
-import { lastfm } from '../../server/api/lastfm';
+import { listenbrainz } from '../../server/api/listenbrainz';
+import { musicbrainz } from '../../server/api/musicbrainz';
 import { prisma } from '../../server/db/prisma';
 import { settingsService } from '../../server/services/settingsService';
 
@@ -27,34 +31,59 @@ import { buildTestApp, VALID_PASSWORD } from './_helpers';
 const RL = { 'x-test-disable-rate-limit': '1' };
 const CSRF = { 'x-overhearr-csrf': '1' };
 
-const LASTFM = 'https://ws.audioscrobbler.com/2.0/';
+const LB = 'https://api.listenbrainz.org';
+const MB = 'https://musicbrainz.org/ws/2';
 
-interface LfmHandlerOpts {
-  topAlbums?: object;
-  topArtists?: object;
-  geoTopAlbums?: object;
-  unreachable?: boolean;
-}
+const sampleReleaseGroups = {
+  payload: {
+    release_groups: [
+      {
+        release_group_name: 'In Rainbows',
+        release_group_mbid: 'rg-rainbows',
+        artist_name: 'Radiohead',
+        artist_mbids: ['radiohead-mbid'],
+        listen_count: 1000,
+      },
+      {
+        release_group_name: 'Untagged',
+        release_group_mbid: '',
+        artist_name: 'Some Band',
+        listen_count: 50,
+      },
+    ],
+  },
+};
 
-function lastfmHandlers(opts: LfmHandlerOpts = {}) {
-  return [
-    http.get(LASTFM, ({ request }) => {
-      if (opts.unreachable) return HttpResponse.error();
-      const url = new URL(request.url);
-      const method = url.searchParams.get('method');
-      if (method === 'chart.gettopalbums') {
-        return HttpResponse.json(opts.topAlbums ?? { topalbums: { album: [] } });
-      }
-      if (method === 'chart.gettopartists') {
-        return HttpResponse.json(opts.topArtists ?? { artists: { artist: [] } });
-      }
-      if (method === 'geo.gettopalbums') {
-        return HttpResponse.json(opts.geoTopAlbums ?? { topalbums: { album: [] } });
-      }
-      return HttpResponse.json({ error: 6, message: 'unknown method' });
-    }),
-  ];
-}
+const sampleArtists = {
+  payload: {
+    artists: [
+      {
+        artist_name: 'Radiohead',
+        artist_mbid: 'radiohead-mbid',
+        listen_count: 5000,
+      },
+      {
+        artist_name: 'Tagless Artist',
+        listen_count: 100,
+      },
+    ],
+  },
+};
+
+const sampleNewReleases = {
+  count: 1,
+  'release-groups': [
+    {
+      id: 'rg-okcomputer',
+      title: 'OK Computer',
+      'primary-type': 'Album',
+      'first-release-date': '2026-05-15',
+      'artist-credit': [
+        { name: 'Radiohead', artist: { id: 'radiohead-mbid', name: 'Radiohead' } },
+      ],
+    },
+  ],
+};
 
 const server = setupServer();
 
@@ -62,9 +91,10 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }));
 afterAll(() => server.close());
 afterEach(() => {
   server.resetHandlers();
-  // The lastfm client caches by method name; reset between tests so each
-  // case sees its own handlers.
-  lastfm.clearCache();
+  // Both singletons cache responses; reset between tests so each case sees
+  // only its own handlers.
+  listenbrainz.clearCache();
+  musicbrainz.clearCache();
 });
 
 async function clearDb(): Promise<void> {
@@ -75,7 +105,9 @@ async function clearDb(): Promise<void> {
   settingsService.invalidate();
 }
 
-async function provisionAdminAndComplete(harness: ReturnType<typeof buildTestApp>) {
+async function provisionAdminAndComplete(
+  harness: ReturnType<typeof buildTestApp>
+) {
   const a = harness.agent();
   await a
     .post('/api/setup/initialize')
@@ -112,66 +144,27 @@ describe('GET /api/discover', () => {
     expect(res.status).toBe(401);
   });
 
-  it('configured:false + empty arrays when Last.fm key not set', async () => {
-    const admin = await provisionAdminAndComplete(harness);
-    const res = await admin.get('/api/discover');
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      configured: false,
-      topAlbums: [],
-      topArtists: [],
-      newReleases: [],
-    });
-    // Cache header is still present.
-    expect(res.headers['cache-control']).toMatch(/private/);
-  });
-
-  it('full payload with configured:true when Last.fm responds', async () => {
+  it('full payload when both providers respond', async () => {
     server.use(
-      ...lastfmHandlers({
-        topAlbums: {
-          topalbums: {
-            album: [
-              {
-                mbid: 'rg-rainbows',
-                name: 'In Rainbows',
-                artist: { name: 'Radiohead', mbid: 'radiohead-mbid' },
-                playcount: '1000',
-              },
-              {
-                mbid: '',
-                name: 'Untagged',
-                artist: 'Some Band',
-              },
-            ],
-          },
-        },
-        topArtists: {
-          artists: {
-            artist: [
-              { mbid: 'radiohead-mbid', name: 'Radiohead', listeners: '500' },
-              { name: 'Tagless Artist' }, // no mbid → no requestStatus
-            ],
-          },
-        },
-        geoTopAlbums: {
-          topalbums: {
-            album: [
-              {
-                mbid: 'rg-okcomputer',
-                name: 'OK Computer',
-                artist: 'Radiohead',
-              },
-            ],
-          },
-        },
-      })
+      http.get(`${LB}/1/stats/sitewide/release-groups`, () =>
+        HttpResponse.json(sampleReleaseGroups)
+      ),
+      http.get(`${LB}/1/stats/sitewide/artists`, () =>
+        HttpResponse.json(sampleArtists)
+      ),
+      http.get(`${MB}/release-group`, () =>
+        HttpResponse.json(sampleNewReleases)
+      ),
+      // CAA hit for the new-release item; we don't care if it's a 404, only
+      // that the route doesn't blow up.
+      http.get('https://coverartarchive.org/release-group/:mbid', () =>
+        HttpResponse.json({ error: 'not found' }, { status: 404 })
+      )
     );
-    const admin = await provisionAdminAndComplete(harness);
-    await admin.patch('/api/settings/lastfm').set(CSRF).send({ apiKey: 'lfm-1234' }).expect(200);
-    settingsService.invalidate();
 
-    // Pre-seed a request to verify enrichment.
+    const admin = await provisionAdminAndComplete(harness);
+
+    // Pre-seed a request so we can verify enrichment.
     const userRow = await prisma.user.findFirstOrThrow();
     await prisma.musicRequest.create({
       data: {
@@ -185,42 +178,92 @@ describe('GET /api/discover', () => {
 
     const res = await admin.get('/api/discover');
     expect(res.status).toBe(200);
-    expect(res.body.configured).toBe(true);
-    expect(res.body.topAlbums).toHaveLength(2);
-    expect(res.body.topArtists).toHaveLength(2);
-    expect(res.body.newReleases).toHaveLength(1);
+    expect(res.headers['cache-control']).toMatch(/private/);
 
-    // Albums: the one with mbid carries requestStatus; the untagged one
-    // does not have a requestStatus key.
+    // Configured field is gone — body has only the three rows.
+    expect(Object.keys(res.body).sort()).toEqual([
+      'newReleases',
+      'topAlbums',
+      'topArtists',
+    ]);
+
+    // Top albums.
+    expect(res.body.topAlbums).toHaveLength(2);
     const rainbows = res.body.topAlbums[0];
     expect(rainbows.mbid).toBe('rg-rainbows');
     expect(rainbows.requestStatus.exists).toBe(true);
     expect(rainbows.requestStatus.status).toBe('PENDING');
+
     const untagged = res.body.topAlbums[1];
     expect(untagged.mbid).toBeUndefined();
     expect(untagged.requestStatus).toBeUndefined();
 
-    const radiohead = res.body.topArtists[0];
-    expect(radiohead.requestStatus).toEqual({ exists: false });
-    const tagless = res.body.topArtists[1];
-    expect(tagless.requestStatus).toBeUndefined();
+    // Top artists.
+    expect(res.body.topArtists).toHaveLength(2);
+    expect(res.body.topArtists[0].mbid).toBe('radiohead-mbid');
+    expect(res.body.topArtists[0].requestStatus).toEqual({ exists: false });
+    expect(res.body.topArtists[1].requestStatus).toBeUndefined();
+
+    // New releases.
+    expect(res.body.newReleases).toHaveLength(1);
+    expect(res.body.newReleases[0].mbid).toBe('rg-okcomputer');
+    expect(res.body.newReleases[0].name).toBe('OK Computer');
   });
 
-  it('gracefully degrades to empty sections when Last.fm is unreachable', async () => {
-    // The Last.fm client swallows per-section upstream failures (so a flaky
-    // chart endpoint cannot blank the entire page). The route therefore
-    // returns configured:true with whatever sections succeeded, even when
-    // all three failed.
-    server.use(...lastfmHandlers({ unreachable: true }));
+  it('per-section graceful degrade when ListenBrainz is unreachable', async () => {
+    server.use(
+      http.get(`${LB}/1/stats/sitewide/release-groups`, () =>
+        HttpResponse.error()
+      ),
+      http.get(`${LB}/1/stats/sitewide/artists`, () => HttpResponse.error()),
+      http.get(`${MB}/release-group`, () =>
+        HttpResponse.json(sampleNewReleases)
+      ),
+      http.get('https://coverartarchive.org/release-group/:mbid', () =>
+        HttpResponse.json({ error: 'not found' }, { status: 404 })
+      )
+    );
     const admin = await provisionAdminAndComplete(harness);
-    await admin.patch('/api/settings/lastfm').set(CSRF).send({ apiKey: 'lfm-1234' }).expect(200);
-    settingsService.invalidate();
-
     const res = await admin.get('/api/discover');
     expect(res.status).toBe(200);
-    expect(res.body.configured).toBe(true);
     expect(res.body.topAlbums).toEqual([]);
     expect(res.body.topArtists).toEqual([]);
+    expect(res.body.newReleases).toHaveLength(1);
+  });
+
+  it('per-section graceful degrade when MusicBrainz is unreachable', async () => {
+    server.use(
+      http.get(`${LB}/1/stats/sitewide/release-groups`, () =>
+        HttpResponse.json(sampleReleaseGroups)
+      ),
+      http.get(`${LB}/1/stats/sitewide/artists`, () =>
+        HttpResponse.json(sampleArtists)
+      ),
+      http.get(`${MB}/release-group`, () => HttpResponse.error())
+    );
+    const admin = await provisionAdminAndComplete(harness);
+    const res = await admin.get('/api/discover');
+    expect(res.status).toBe(200);
+    expect(res.body.topAlbums.length).toBeGreaterThan(0);
+    expect(res.body.topArtists.length).toBeGreaterThan(0);
     expect(res.body.newReleases).toEqual([]);
+  });
+
+  it('returns three empty rows when every provider fails (never bubbles 502)', async () => {
+    server.use(
+      http.get(`${LB}/1/stats/sitewide/release-groups`, () =>
+        HttpResponse.error()
+      ),
+      http.get(`${LB}/1/stats/sitewide/artists`, () => HttpResponse.error()),
+      http.get(`${MB}/release-group`, () => HttpResponse.error())
+    );
+    const admin = await provisionAdminAndComplete(harness);
+    const res = await admin.get('/api/discover');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      topAlbums: [],
+      topArtists: [],
+      newReleases: [],
+    });
   });
 });

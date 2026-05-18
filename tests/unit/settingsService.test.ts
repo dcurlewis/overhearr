@@ -93,13 +93,6 @@ describe('SettingsService', () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it('updateLastfmKey(null) clears, string sets and round-trips', async () => {
-    await svc.updateLastfmKey('lfm-key-9999');
-    expect(await svc.getDecryptedLastfmKey()).toBe('lfm-key-9999');
-    await svc.updateLastfmKey(null);
-    expect(await svc.getDecryptedLastfmKey()).toBeNull();
-  });
-
   it('isLidarrConfigured returns true only when ALL fields are set', async () => {
     expect(await svc.isLidarrConfigured()).toBe(false);
     await svc.updateLidarrSettings({

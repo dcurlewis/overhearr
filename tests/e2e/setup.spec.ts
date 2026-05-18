@@ -3,7 +3,7 @@ import { mockVirginInstall } from './_fixtures/mocks';
 import { capture, freezeUi } from './_fixtures/screenshot';
 
 test.describe('First-run setup wizard', () => {
-  test('walks through admin → lidarr → profiles → last.fm → done', async ({
+  test('walks through admin → lidarr → profiles → done', async ({
     page,
   }) => {
     const handle = await mockVirginInstall(page);
@@ -45,13 +45,6 @@ test.describe('First-run setup wizard', () => {
     // Wait until SWR has loaded the profiles list.
     await expect(page.getByLabel('Quality profile')).toBeEnabled();
     await capture(page, '04-setup-lidarr-profiles');
-
-    await page.getByRole('button', { name: /save & continue/i }).click();
-
-    // Last.fm step.
-    await expect(page.getByLabel('Last.fm API key')).toBeVisible();
-    await page.getByLabel('Last.fm API key').fill('abc123abc123abc123abc123abc12345');
-    await capture(page, '05-setup-lastfm');
 
     await page.getByRole('button', { name: /save & continue/i }).click();
 

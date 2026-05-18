@@ -4,6 +4,34 @@ All notable changes to Overhearr will be documented in this file. The
 format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and the project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Discover sources rewritten.** Last.fm retired the `chart.gettopalbums`
+  and `geo.gettopalbums` endpoints (silently — they return method-not-found
+  for any new key), so two of the three Discover rows had been permanently
+  empty since the underlying change. Replaced with:
+  - **Top Albums** → ListenBrainz `/1/stats/sitewide/release-groups`
+    (anonymous, no API key).
+  - **Top Artists** → ListenBrainz `/1/stats/sitewide/artists`
+    (anonymous, no API key).
+  - **New Releases** → MusicBrainz release-group search restricted to the
+    last month, sorted by `firstreleasedate` desc.
+- **Discover is now zero-config.** Both replacement providers are anonymous
+  public APIs, so a fresh install shows three populated rows immediately
+  with no setup-wizard step and no Settings card to configure.
+
+### Removed
+
+- **Last.fm integration.** The wizard's Last.fm step, the Settings → Last.fm
+  card, the `Settings.lastfmApiKeyEncrypted` DB column, and all related
+  routes (`PATCH /api/settings/lastfm`) and code paths are gone. Migration
+  to drop the column is additive — existing installs lose the stored key on
+  upgrade (it was no longer functional anyway).
+- **`DiscoverPayload.configured`.** The "Last.fm not configured" empty state
+  no longer applies; the response shape is now just the three row arrays.
+
 ## [1.0.0] - 2026-05-13
 
 First production release. A from-scratch modernization of the original

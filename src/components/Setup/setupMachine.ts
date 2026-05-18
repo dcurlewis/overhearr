@@ -9,10 +9,12 @@
  *   admin              → create the first admin account
  *   lidarr-connection  → enter URL + API key, must Test before continuing
  *   lidarr-profiles    → pick root folder, quality profile, metadata profile
- *   lastfm             → optional Last.fm API key
  *   done               → auto-runs POST /api/setup/complete + redirects
  *
- * The admin step has no Back button. `lastfm` is the only step you can Skip.
+ * Discover is powered by ListenBrainz + MusicBrainz (anonymous APIs), so
+ * there is no Last.fm step to skip — the wizard goes straight from the
+ * Lidarr profiles step to "done".
+ *
  * Once `setupCompleted=true` arrives via SetupContext, the page guard kicks
  * the user out of /setup entirely.
  */
@@ -21,34 +23,31 @@ export type SetupStep =
   | 'admin'
   | 'lidarr-connection'
   | 'lidarr-profiles'
-  | 'lastfm'
   | 'done';
 
-/** Visible steps used by the step indicator (4 dots). `done` is implicit. */
+/** Visible steps used by the step indicator. `done` is implicit. */
 export const VISIBLE_STEPS: ReadonlyArray<Exclude<SetupStep, 'done'>> = [
   'admin',
   'lidarr-connection',
   'lidarr-profiles',
-  'lastfm',
 ];
 
 export const STEP_TITLES: Record<SetupStep, string> = {
   admin: 'Create admin account',
   'lidarr-connection': 'Connect to Lidarr',
   'lidarr-profiles': 'Choose Lidarr profiles',
-  lastfm: 'Last.fm (optional)',
   done: 'Finishing up',
 };
 
 /**
- * Whether the user can Skip a step. We keep this here (not in component)
- * because the wizard footer reads it to decide which buttons to render.
+ * Whether the user can Skip a step. No step is skippable in the
+ * Lidarr-only flow, but we keep this map so the wizard footer can keep
+ * its uniform handling.
  */
 export const STEP_CAN_SKIP: Record<SetupStep, boolean> = {
   admin: false,
   'lidarr-connection': false,
   'lidarr-profiles': false,
-  lastfm: true,
   done: false,
 };
 
@@ -81,11 +80,7 @@ export interface InitialStepInput {
  *   2. !hasAdmin        → admin
  *   3. Lidarr URL+key not yet saved → lidarr-connection
  *   4. Any of root/quality/metadata missing → lidarr-profiles
- *   5. Otherwise        → lastfm
- *
- * The user can still go back from any non-admin step. We deliberately do
- * NOT auto-jump to `done` (that step finalises and redirects); we land
- * them on lastfm so they get one last chance to add the optional key.
+ *   5. Otherwise        → done
  */
 export function computeInitialStep(input: InitialStepInput): SetupStep {
   if (input.setupCompleted) return 'done';
@@ -107,7 +102,7 @@ export function computeInitialStep(input: InitialStepInput): SetupStep {
   ) {
     return 'lidarr-profiles';
   }
-  return 'lastfm';
+  return 'done';
 }
 
 // ---- Reducer --------------------------------------------------------------
@@ -126,8 +121,7 @@ export type SetupAction =
 const FORWARD: Record<SetupStep, SetupStep> = {
   admin: 'lidarr-connection',
   'lidarr-connection': 'lidarr-profiles',
-  'lidarr-profiles': 'lastfm',
-  lastfm: 'done',
+  'lidarr-profiles': 'done',
   done: 'done',
 };
 
@@ -135,8 +129,7 @@ const BACK: Record<SetupStep, SetupStep | null> = {
   admin: null, // can never go back from admin
   'lidarr-connection': null, // also no going back — admin is already created
   'lidarr-profiles': 'lidarr-connection',
-  lastfm: 'lidarr-profiles',
-  done: 'lastfm',
+  done: 'lidarr-profiles',
 };
 
 export function setupReducer(state: SetupState, action: SetupAction): SetupState {

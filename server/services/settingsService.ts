@@ -115,12 +115,6 @@ export class SettingsService {
     };
   }
 
-  async getDecryptedLastfmKey(): Promise<string | null> {
-    const s = await this.getSettings();
-    if (!s.lastfmApiKeyEncrypted) return null;
-    return decryptSecret(s.lastfmApiKeyEncrypted);
-  }
-
   async isLidarrConfigured(): Promise<boolean> {
     const cfg = await this.getDecryptedLidarrConfig();
     return cfg !== null;
@@ -169,17 +163,6 @@ export class SettingsService {
     // Lidarr connection details may have changed; force the client factory
     // to rebuild on next use.
     invalidateLidarrClient();
-    return updated;
-  }
-
-  async updateLastfmKey(apiKey: string | null): Promise<Settings> {
-    const value = apiKey === null ? null : encryptSecret(apiKey);
-    const updated = await prisma.settings.upsert({
-      where: { id: 1 },
-      update: { lastfmApiKeyEncrypted: value },
-      create: { id: 1, lastfmApiKeyEncrypted: value },
-    });
-    this.cache = updated;
     return updated;
   }
 

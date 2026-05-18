@@ -1,7 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
 import { CheckIcon } from '@heroicons/react/24/solid';
-import { Badge } from '../ui/Badge';
 import {
   STEP_TITLES,
   VISIBLE_STEPS,
@@ -21,7 +20,6 @@ const STEP_LABELS: Record<Exclude<SetupStep, 'done'>, string> = {
   admin: 'Admin',
   'lidarr-connection': 'Lidarr',
   'lidarr-profiles': 'Profiles',
-  lastfm: 'Last.fm',
 };
 
 /**
@@ -35,7 +33,7 @@ export const WizardShell: React.FC<WizardShellProps> = ({
   description,
   children,
 }) => {
-  // For indicator highlighting, treat `done` as "past lastfm" (all complete).
+  // For indicator highlighting, treat `done` as "past the last visible step".
   const currentIndex =
     current === 'done'
       ? VISIBLE_STEPS.length
@@ -98,11 +96,6 @@ export const WizardShell: React.FC<WizardShellProps> = ({
                   )}
                 >
                   {label}
-                  {step === 'lastfm' && (
-                    <Badge variant="neutral" className="ml-1.5 align-middle">
-                      optional
-                    </Badge>
-                  )}
                 </span>
               </div>
             </li>

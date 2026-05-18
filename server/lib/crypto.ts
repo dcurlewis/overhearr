@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { env } from '../config/env';
 
 /**
- * AES-256-GCM at-rest encryption for small secrets (Lidarr / Last.fm API keys).
+ * AES-256-GCM at-rest encryption for small secrets (the Lidarr API key).
  *
  * Format: `v1:<base64( iv(12) || ciphertext || authTag(16) )>`. The `v1:`
  * prefix gives us a versioning hook for future key-rotation flows; today

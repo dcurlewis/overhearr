@@ -80,8 +80,6 @@ describe('settings router — auth', () => {
     expect(get.status).toBe(403);
     const patch = await bob.patch('/api/settings/lidarr').set(CSRF).send({ url: LIDARR_URL });
     expect(patch.status).toBe(403);
-    const lfm = await bob.patch('/api/settings/lastfm').set(CSRF).send({ apiKey: 'x' });
-    expect(lfm.status).toBe(403);
     const test = await bob
       .post('/api/settings/lidarr/test')
       .set(CSRF)
@@ -158,22 +156,6 @@ describe('settings router — admin GET/PATCH', () => {
     expect(cfg?.apiKey).toBe(SECRET);
   });
 
-  it('PATCH /lastfm with string sets and with null clears', async () => {
-    const admin = await provisionAdmin(harness);
-    const set = await admin
-      .patch('/api/settings/lastfm')
-      .set(CSRF)
-      .send({ apiKey: 'lfm-1234' });
-    expect(set.status).toBe(200);
-    expect(set.body.lastfmApiKey).toMatch(/1234$/);
-
-    const cleared = await admin
-      .patch('/api/settings/lastfm')
-      .set(CSRF)
-      .send({ apiKey: null });
-    expect(cleared.status).toBe(200);
-    expect(cleared.body.lastfmApiKey).toBeNull();
-  });
 });
 
 describe('settings router — POST /lidarr/test', () => {

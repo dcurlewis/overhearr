@@ -1,79 +1,83 @@
 /**
- * /api/discover — Last.fm-backed Discover landing page.
+ * /api/discover — Discover landing page.
  *
- * Behaviour matrix:
- *   - Last.fm key not configured  → 200 with `{configured:false, ...empty arrays}`.
- *     The frontend renders an empty-state with a "Configure Last.fm" CTA.
- *     We deliberately do NOT bubble the 503 LASTFM_NOT_CONFIGURED here —
- *     "no key yet" is a normal first-run state, not a request failure.
- *   - Last.fm unreachable / invalid key → bubbles to the central error
- *     handler (502). The frontend shows an error toast and a retry.
+ * Sources (both anonymous, zero-config):
+ *   - ListenBrainz `/1/stats/sitewide/release-groups` → topAlbums
+ *   - ListenBrainz `/1/stats/sitewide/artists`        → topArtists
+ *   - MusicBrainz  release-group search (last 1 month) → newReleases
  *
- * Request status enrichment is best-effort: only items that carry a
- * MusicBrainz id can be looked up. Items without an mbid get
- * `requestStatus: undefined` and the frontend falls back to a search-by-
- * name CTA.
+ * Per-section graceful degradation: if any one upstream blips, that section
+ * becomes `[]` and the rest of the page still renders. We never bubble a
+ * 502 from one row failing.
  *
- * Cache-Control: `private, max-age=300` — the underlying client caches
- * Last.fm responses much longer (1h), but a small browser-side hint cuts
- * flicker on tab switches.
+ * Request status enrichment is best-effort — only items carrying an mbid
+ * can be looked up. Items without an mbid get `requestStatus: undefined`
+ * and the frontend falls back to a search-by-name CTA.
+ *
+ * Cache-Control: `private, max-age=300`. The underlying clients cache for
+ * an hour; this just cuts flicker on tab switches.
  */
 
 import { Router } from 'express';
 
-import { lastfm } from '../api/lastfm';
-import { LastfmNotConfiguredError } from '../api/lastfm/errors';
+import { listenbrainz } from '../api/listenbrainz';
+import { musicbrainz } from '../api/musicbrainz';
 import { UnauthorizedError } from '../lib/errors';
+import { getLogger } from '../lib/logger';
 import { requireAuth, requireSetupComplete } from '../middleware/auth';
-import { getRequestStatusBatch, requestStatusKey } from '../services/requestLookupService';
+import {
+  getRequestStatusBatch,
+  requestStatusKey,
+} from '../services/requestLookupService';
+import type { DiscoverAlbum, DiscoverArtist } from '../types/discover';
 import type {
+  DiscoverAlbumWithStatus,
+  DiscoverArtistWithStatus,
   DiscoverPayload,
-  LastfmAlbumWithStatus,
-  LastfmArtistWithStatus,
 } from '../../src/types/api';
+
+const log = getLogger('discover');
+const ROW_LIMIT = 24;
+const NEW_RELEASES_MONTHS_BACK = 1;
 
 export const discoverRouter = Router();
 
 discoverRouter.use(requireAuth);
 discoverRouter.use(requireSetupComplete);
 
+async function settle<T>(p: Promise<T[]>, label: string): Promise<T[]> {
+  try {
+    return await p;
+  } catch (err) {
+    log.warn({ err, section: label }, 'discover: section failed; degrading to empty');
+    return [];
+  }
+}
+
 discoverRouter.get('/', async (req, res, next) => {
   try {
     if (!req.user) throw new UnauthorizedError('Authentication required');
     const userId = req.user.id;
 
-    let topAlbums = [] as Awaited<ReturnType<typeof lastfm.getDiscover>>['topAlbums'];
-    let topArtists = [] as Awaited<ReturnType<typeof lastfm.getDiscover>>['topArtists'];
-    let newReleases = [] as Awaited<ReturnType<typeof lastfm.getDiscover>>['newReleases'];
-    let configured = true;
+    const [topAlbums, topArtists, newReleases] = await Promise.all([
+      settle<DiscoverAlbum>(
+        listenbrainz.getTopReleaseGroups({ count: ROW_LIMIT }),
+        'topAlbums'
+      ),
+      settle<DiscoverArtist>(
+        listenbrainz.getTopArtists({ count: ROW_LIMIT }),
+        'topArtists'
+      ),
+      settle<DiscoverAlbum>(
+        musicbrainz.getRecentReleaseGroups({
+          monthsBack: NEW_RELEASES_MONTHS_BACK,
+          limit: ROW_LIMIT,
+        }),
+        'newReleases'
+      ),
+    ]);
 
-    try {
-      const data = await lastfm.getDiscover();
-      topAlbums = data.topAlbums;
-      topArtists = data.topArtists;
-      newReleases = data.newReleases;
-    } catch (err) {
-      if (err instanceof LastfmNotConfiguredError) {
-        configured = false;
-      } else {
-        throw err;
-      }
-    }
-
-    if (!configured) {
-      const empty: DiscoverPayload = {
-        configured: false,
-        topAlbums: [],
-        topArtists: [],
-        newReleases: [],
-      };
-      res.set('Cache-Control', 'private, max-age=300');
-      return res.json(empty);
-    }
-
-    // Build the lookup batch from rows that carry an mbid. Albums use the
-    // release-group mbid (Last.fm's `mbid` field on top-album rows IS the
-    // release-group id by convention).
+    // Build the lookup batch from rows that carry an mbid.
     const lookupItems: Array<{ mbid: string; type: 'ALBUM' | 'ARTIST' }> = [];
     for (const a of topAlbums) {
       if (a.mbid) lookupItems.push({ mbid: a.mbid, type: 'ALBUM' });
@@ -86,7 +90,7 @@ discoverRouter.get('/', async (req, res, next) => {
     }
     const statuses = await getRequestStatusBatch(userId, lookupItems);
 
-    const enrichAlbum = (a: (typeof topAlbums)[number]): LastfmAlbumWithStatus => {
+    const enrichAlbum = (a: DiscoverAlbum): DiscoverAlbumWithStatus => {
       if (!a.mbid) return { ...a };
       return {
         ...a,
@@ -95,7 +99,7 @@ discoverRouter.get('/', async (req, res, next) => {
         },
       };
     };
-    const enrichArtist = (a: (typeof topArtists)[number]): LastfmArtistWithStatus => {
+    const enrichArtist = (a: DiscoverArtist): DiscoverArtistWithStatus => {
       if (!a.mbid) return { ...a };
       return {
         ...a,
@@ -106,7 +110,6 @@ discoverRouter.get('/', async (req, res, next) => {
     };
 
     const body: DiscoverPayload = {
-      configured: true,
       topAlbums: topAlbums.map(enrichAlbum),
       topArtists: topArtists.map(enrichArtist),
       newReleases: newReleases.map(enrichAlbum),

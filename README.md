@@ -2,8 +2,8 @@
 
 A self-hosted music request manager for [Lidarr](https://lidarr.audio/), in
 the spirit of [Overseerr](https://overseerr.dev/). Browse what's hot on
-Last.fm, search MusicBrainz, and one-click an album or whole discography
-into your Lidarr library.
+ListenBrainz, search MusicBrainz, and one-click an album or whole
+discography into your Lidarr library.
 
 ![Overhearr discover page](docs/screenshot-discover.png)
 
@@ -30,9 +30,10 @@ Browse to `http://<host>:5056` and follow the first-run wizard:
 1. Create an admin account.
 2. Point Overhearr at your Lidarr (URL + API key) and pick a quality
    profile + root folder.
-3. Optionally add a Last.fm API key to populate the Discover page.
 
-That's it. Everything else lives in the in-app **Settings** page.
+That's it. The Discover page populates immediately from ListenBrainz and
+MusicBrainz — no extra accounts or keys needed. Everything else lives in
+the in-app **Settings** page.
 
 ### docker-compose
 
@@ -122,14 +123,15 @@ Everything stateful lives under `/config`:
 
 Backing up the `/config` directory while the container is stopped (or via
 `sqlite3 .backup`) gives you a full point-in-time snapshot. Nothing else
-is state-bearing — the in-memory MusicBrainz / Last.fm cache is
+is state-bearing — the in-memory MusicBrainz / ListenBrainz cache is
 disposable.
 
 ## Configuration
 
-All Lidarr / Last.fm config is stored encrypted in the SQLite DB and
-managed via the UI. Only infrastructure values come from environment
-variables:
+Lidarr config (URL, API key, profiles, root folder) is stored encrypted in
+the SQLite DB and managed via the UI. Discover sources (ListenBrainz +
+MusicBrainz) are anonymous public APIs and need no configuration. Only
+infrastructure values come from environment variables:
 
 | Variable         | Required | Default                        | Notes                                                                                        |
 | ---------------- | -------- | ------------------------------ | -------------------------------------------------------------------------------------------- |
@@ -208,8 +210,13 @@ Router.
 
 State lives in a single SQLite database via Prisma. Sessions are
 persisted in the same DB so the container is fully stateless across
-restarts. Lidarr and Last.fm API keys are encrypted with AES-256-GCM
-using `ENCRYPTION_KEY` before being written.
+restarts. The Lidarr API key is encrypted with AES-256-GCM using
+`ENCRYPTION_KEY` before being written.
+
+The Discover landing page is sourced from ListenBrainz (sitewide top
+release-groups + artists) and MusicBrainz (recent release-groups). Both
+APIs are anonymous, so Discover works on a fresh install with no extra
+setup. Search is MusicBrainz; cover art is Cover Art Archive.
 
 A background reconciliation worker polls Lidarr periodically and
 updates the status (`PENDING` → `PROCESSING` → `AVAILABLE` / `FAILED`)

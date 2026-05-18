@@ -62,7 +62,6 @@ export const redactedSettings = {
   lidarrRootFolderPath: '/data/music',
   lidarrQualityProfileId: 2,
   lidarrMetadataProfileId: 1,
-  lastfmApiKey: '••••••••c123',
   setupCompleted: true,
   createdAt: '2026-05-01T12:00:00.000Z',
   updatedAt: '2026-05-13T08:00:00.000Z',
@@ -111,7 +110,6 @@ export const DOOLITTLE_RG = '8b3c1eef-1111-2222-3333-444455556666';
 // ---- Discover -------------------------------------------------------------
 
 export const discoverConfigured: DiscoverPayload = {
-  configured: true,
   topAlbums: [
     {
       mbid: IN_RAINBOWS_RG,
@@ -202,8 +200,7 @@ export const discoverConfigured: DiscoverPayload = {
   ],
 };
 
-export const discoverNotConfigured: DiscoverPayload = {
-  configured: false,
+export const discoverEmpty: DiscoverPayload = {
   topAlbums: [],
   topArtists: [],
   newReleases: [],

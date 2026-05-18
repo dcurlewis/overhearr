@@ -27,7 +27,7 @@ export interface AlbumCardProps {
 /**
  * A 1:1 cover-art card for browsing surfaces. Click navigates to:
  *   - `/album/<mbid>` when an mbid is present, or
- *   - `/search?q=<artist+title>` as a fallback for Last.fm rows without one.
+ *   - `/search?q=<artist+title>` as a fallback for Discover rows without one.
  */
 export const AlbumCard: React.FC<AlbumCardProps> = ({
   coverArtUrl,

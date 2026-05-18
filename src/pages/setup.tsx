@@ -11,7 +11,6 @@ import { useRouteGuard } from '../hooks/useRouteGuard';
 import { apiGet, ApiError } from '../lib/api';
 import { AdminStep } from '../components/Setup/AdminStep';
 import { DoneStep } from '../components/Setup/DoneStep';
-import { LastfmStep } from '../components/Setup/LastfmStep';
 import { LidarrConnectionStep } from '../components/Setup/LidarrConnectionStep';
 import { LidarrProfilesStep } from '../components/Setup/LidarrProfilesStep';
 import { WizardShell } from '../components/Setup/WizardShell';
@@ -52,8 +51,6 @@ const STEP_DESCRIPTIONS: Record<string, string> = {
     "Tell Overhearr where your Lidarr instance lives. We'll verify the connection before saving.",
   'lidarr-profiles':
     'Choose where new music goes and how Lidarr should monitor it.',
-  lastfm:
-    'Last.fm powers the Discover page. This step is optional and can be added later from Settings.',
   done: 'Wrapping up...',
 };
 
@@ -157,14 +154,6 @@ const SetupPage: NextPageWithLayout = () => {
         <LidarrProfilesStep onAdvance={() => dispatch({ type: 'next' })} />
       );
       break;
-    case 'lastfm':
-      body = (
-        <LastfmStep
-          onAdvance={() => dispatch({ type: 'next' })}
-          onSkip={() => dispatch({ type: 'skip' })}
-        />
-      );
-      break;
     case 'done':
       body = (
         <DoneStep
@@ -176,10 +165,9 @@ const SetupPage: NextPageWithLayout = () => {
       break;
   }
 
-  // Show "Back" on lidarr-profiles and lastfm only. lidarr-connection has no
-  // back button (admin step is irreversible) and `done` is auto-running.
-  const canGoBack =
-    state.step === 'lidarr-profiles' || state.step === 'lastfm';
+  // Show "Back" on lidarr-profiles only. lidarr-connection has no back
+  // button (admin step is irreversible) and `done` is auto-running.
+  const canGoBack = state.step === 'lidarr-profiles';
 
   return (
     <WizardShell

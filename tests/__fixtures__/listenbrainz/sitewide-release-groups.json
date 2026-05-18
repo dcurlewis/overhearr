@@ -1,0 +1,30 @@
+{
+  "payload": {
+    "from_ts": 1738368000,
+    "to_ts": 1740787200,
+    "last_updated": 1740787200,
+    "release_groups": [
+      {
+        "release_group_name": "Currents",
+        "release_group_mbid": "ad010f4f-aa3a-4abb-a8a8-09c819a8e9d3",
+        "artist_name": "Tame Impala",
+        "artist_mbids": ["63aa26c3-d59b-4da4-84ac-716b54f1ef4d"],
+        "listen_count": 12345678,
+        "caa_id": 31102104285,
+        "caa_release_mbid": "5a334e2c-5b56-3d4c-bd2d-8e00fe27a8a9"
+      },
+      {
+        "release_group_name": "Untagged Album",
+        "release_group_mbid": "",
+        "artist_name": "Some Band",
+        "listen_count": 1000
+      },
+      {
+        "release_group_name": "",
+        "release_group_mbid": "missing-name-1",
+        "artist_name": "Discarded Artist",
+        "listen_count": 7
+      }
+    ]
+  }
+}
