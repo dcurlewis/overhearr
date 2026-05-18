@@ -22,6 +22,8 @@ Targeted test runs:
 - Only unit / only integration: `npm run test:unit` / `npm run test:integration`
 - E2E variants: `npm run test:e2e:ui` (UI), `npm run test:e2e:headed`, single file: `npx playwright test tests/e2e/album-request.spec.ts`
 
+For changes that touch upstream HTTP integrations (MusicBrainz, ListenBrainz, Lidarr, Cover Art Archive), green test:all is necessary but not sufficient — msw intercepts at the HTTP module layer, so it doesn't catch DNS, IPv4/IPv6, TLS, or real-timeout regressions. After tests pass, smoke against the real services: `npm run dev`, run through the affected flow, and skim the logs for warns from the relevant client. The IPv6 hang in PR #16 would have shipped if I'd stopped at green.
+
 Database (Prisma + SQLite):
 - `npm run db:migrate` — `prisma migrate dev` (local schema changes).
 - `npm run db:migrate:deploy` — applied automatically in the Docker entrypoint.
@@ -35,6 +37,8 @@ Setup for a fresh checkout: `npm ci`, copy `.env.example` to `.env` and fill `SE
 **Single-process hybrid Express + Next.js.** `server/index.ts` boots Prisma, prepares a Next app, then builds the Express app via `server/appFactory.ts` and mounts the Next request handler as a fall-through for non-`/api` paths via `attachExtraHandlers`. One port, one container, shared session middleware, SSR via the Next App Router.
 
 **`buildApp` (`server/appFactory.ts`) is the integration-test seam.** It returns a configured `Express` without calling `listen` or `prisma.$connect`. Integration tests (`tests/integration/_helpers.ts`) call it with their own `PrismaSessionStore` and a supertest agent. Per-file SQLite isolation is enforced by `tests/integration/setup-env.ts` (a vitest setupFile run in each forked worker before module eval) — every integration test file gets its own tmpdir DB and Prisma client. Cross-file pollution is impossible by construction; do not try to share state.
+
+**Singleton upstream clients carry LRU caches; integration tests must clear them.** `lastfm`, `musicbrainz`, and `listenbrainz` (and any future client) are imported as long-lived singletons. Their internal caches survive between integration test cases inside the same file, and msw handler swaps don't invalidate them. Integration tests that touch these clients must call `<client>.clearCache()` in `afterEach` — see `tests/integration/discover.test.ts` for the pattern. Symptoms when you forget: the first test passes, subsequent tests appear to use stale data and fail mysteriously when re-ordered.
 
 **API surface lives under `/api/*`.** Routers in `server/routes/` (auth, setup, users, profile, settings, search, music, discover, requests, health) call into services in `server/services/` (`authService`, `settingsService`, `requestService`, `requestLookupService`, `reconciliationWorker`). Upstream HTTP clients live in `server/api/{lidarr,musicbrainz,listenbrainz}/`. The Discover route fans out to ListenBrainz (top release-groups + artists, anonymous sitewide stats) and MusicBrainz (recent release-groups), per-section graceful degrade — neither requires an API key, so Discover is zero-config.
 
@@ -57,6 +61,10 @@ Setup for a fresh checkout: `npm ci`, copy `.env.example` to `.env` and fill `SE
 **Frontend** is in `src/` (Next.js Pages Router under `src/pages/`, components in `src/components/`, contexts in `src/context/`, SWR hooks in `src/hooks/`). Frontend unit tests live in `tests/unit/frontend/**` and run under `jsdom` per the `environmentMatchGlobs` rule in `vitest.config.ts`. The frontend is intentionally *not* extensively unit-tested — it is covered end-to-end by Playwright, which is why global vitest coverage thresholds are deliberately low (see comment in `vitest.config.ts`).
 
 **Lidarr client quirks** (`server/api/lidarr/index.ts`): URL normalization (users paste `/api/v1`, trailing slashes, etc.); skyhook/MusicBrainz flakiness returns HTTP 200 with an error body — classified as `LidarrMetadataUnavailableError`; lookup endpoints try both `lidarr:<mbid>` and bare MBID; `addAlbum()` auto-adds the artist with `monitor:'none'` if needed.
+
+**All outbound HTTP clients pin IPv4** via `new https.Agent({ family: 4 })`. MusicBrainz and ListenBrainz both have CDN paths where dual-stack DNS hands back AAAA records that black-hole instead of failing cleanly — Node defaults to IPv6 first, hangs the full timeout, and tests pass while production reads as a generic "upstream slow" issue. New upstream clients should follow the same pattern unless you've verified the host doesn't have this problem.
+
+**Reading `package.json` at runtime: use `server/lib/packageVersion.ts#buildUserAgent(__dirname)`.** `__dirname` resolves to a different relative depth under `tsx watch` (`server/api/<x>/`), the compiled tree (`dist/server/api/<x>/`), and the Docker layout (where `package.json` is at `/app/`). The helper tries every plausible candidate plus a `process.cwd()` fallback. Don't reach for `require('../../../package.json')` directly — that's how a startup-crash bug shipped before.
 
 ## Conventions
 
