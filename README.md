@@ -141,7 +141,7 @@ infrastructure values come from environment variables:
 | `HOST`           | no       | `0.0.0.0`                      | Bind address.                                                                                |
 | `LOG_LEVEL`      | no       | `info`                         | `fatal` \| `error` \| `warn` \| `info` \| `debug` \| `trace`.                                |
 | `DATABASE_URL`   | no       | `file:/config/db/overhearr.db` | SQLite path. Override only if you really know why.                                           |
-| `TRUST_PROXY`    | no       | `false`                        | Set `true` behind nginx / Traefik / Cloudflare so secure cookies + IPs work.                 |
+| `TRUST_PROXY`    | no       | `false`                        | Set `true` behind nginx / Traefik / Cloudflare to trust the immediate upstream hop's `X-Forwarded-*` headers (secure cookies + correct client IPs). |
 
 ### Volumes
 

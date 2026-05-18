@@ -6,6 +6,15 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`TRUST_PROXY=true` now trusts a single upstream hop.** Previously
+  mapped to Express's `trust proxy = true` ("trust every hop"), which
+  allowed `X-Forwarded-For` spoofing and triggered the
+  `ERR_ERL_PERMISSIVE_TRUST_PROXY` advisory from `express-rate-limit` on
+  every startup behind a proxy. The login rate limiter also explicitly
+  opts out of that advisory now that we've made a deliberate choice.
+
 ### Changed
 
 - **Discover sources rewritten.** Last.fm retired the `chart.gettopalbums`

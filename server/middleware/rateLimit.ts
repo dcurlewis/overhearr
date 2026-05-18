@@ -19,6 +19,11 @@ export const loginRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
+  // Express's `trust proxy` is set to `1` (one hop) when TRUST_PROXY=true and
+  // `false` otherwise — both are explicit, valid values, so the library's
+  // permissive-trust-proxy advisory is just noise. Disable it to keep prod
+  // logs clean.
+  validate: { trustProxy: false },
   skip: (req) => {
     if (isTest && req.headers['x-test-disable-rate-limit'] === '1') return true;
     return false;

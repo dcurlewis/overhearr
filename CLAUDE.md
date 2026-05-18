@@ -48,6 +48,8 @@ Setup for a fresh checkout: `npm ci`, copy `.env.example` to `.env` and fill `SE
 
 **Cookie `secure` flag is `'auto'`, not `isProduction`.** This is deliberate: a hardcoded `secure: true` broke LAN-direct HTTP installs because browsers refused to send Secure cookies over HTTP. `'auto'` follows `req.secure`, which honors `X-Forwarded-Proto` when `TRUST_PROXY=true`. Don't change this without re-reading the comment in `appFactory.ts`.
 
+**`TRUST_PROXY=true` maps to Express `trust proxy = 1`, not `true`.** The boolean env is intentionally narrow: it means "trust *one* upstream hop." Passing literal `true` to Express ("trust every hop") allows `X-Forwarded-For` spoofing and trips `express-rate-limit`'s `ERR_ERL_PERMISSIVE_TRUST_PROXY` advisory. The rate limiter also opts out of the advisory via `validate.trustProxy: false` since we've made an explicit choice. If a deploy ever needs more hops or CIDR-based trust, widen the env schema rather than reverting the mapping.
+
 **Helmet defaults are intentionally loosened.** CSP, COOP, and origin-agent-cluster are disabled because the default CSP blocks Next's inline hydration scripts and the FOUC theme suppression script in `_document.tsx`, and COOP/OAC require HTTPS. For public-internet deploys, terminate TLS at a reverse proxy and set CSP/HSTS there.
 
 **Path aliases:** `@/*` → `src/*`, `@server/*` → `server/*` (see `tsconfig.json`). Vitest resolves these via `vite-tsconfig-paths`.
