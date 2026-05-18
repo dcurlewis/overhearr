@@ -50,7 +50,19 @@ export interface BuiltApp {
  */
 export function buildApp(options: BuildAppOptions = {}): BuiltApp {
   const app = express();
-  app.set('trust proxy', env.TRUST_PROXY);
+  // Map the boolean TRUST_PROXY env to Express's `trust proxy` setting.
+  //
+  //   TRUST_PROXY=false → false (no X-Forwarded-* trust)
+  //   TRUST_PROXY=true  → 1     (trust ONE upstream hop)
+  //
+  // Passing `true` here would mean "trust every X-Forwarded-* header from
+  // every hop", which lets a malicious client spoof their source IP. It also
+  // makes `express-rate-limit` log ERR_ERL_PERMISSIVE_TRUST_PROXY on every
+  // startup. `1` is the right choice for the dominant Overhearr deploy
+  // (Unraid + a single TLS-terminating proxy on the same host). If a deploy
+  // ever needs more hops or CIDR-based trust, the env schema can be widened
+  // without changing this default.
+  app.set('trust proxy', env.TRUST_PROXY ? 1 : false);
 
   app.use(requestLogger);
   // Helmet defaults are too strict for a Next.js app served over plain HTTP
