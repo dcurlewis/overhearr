@@ -10,7 +10,6 @@ const redactPaths = [
   '*.passwordHash',
   '*.apiKey',
   '*.lidarrApiKey',
-  '*.lastfmApiKey',
 ];
 
 const baseOptions: LoggerOptions = {

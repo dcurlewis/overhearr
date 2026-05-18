@@ -91,14 +91,14 @@ describe('setupMachine.computeInitialStep', () => {
     ).toBe('lidarr-profiles');
   });
 
-  it('returns "lastfm" when Lidarr is fully configured', () => {
+  it('returns "done" when Lidarr is fully configured', () => {
     expect(
       computeInitialStep({
         hasAdmin: true,
         setupCompleted: false,
         lidarrConfigured: FULL_LIDARR,
       })
-    ).toBe('lastfm');
+    ).toBe('done');
   });
 });
 
@@ -125,14 +125,8 @@ describe('setupMachine reducer', () => {
     });
   });
 
-  it('advances lidarr-profiles → lastfm on next', () => {
+  it('advances lidarr-profiles → done on next', () => {
     expect(setupReducer(start('lidarr-profiles'), { type: 'next' })).toEqual({
-      step: 'lastfm',
-    });
-  });
-
-  it('advances lastfm → done on next', () => {
-    expect(setupReducer(start('lastfm'), { type: 'next' })).toEqual({
       step: 'done',
     });
   });
@@ -158,57 +152,48 @@ describe('setupMachine reducer', () => {
     });
   });
 
-  it('back from lastfm → lidarr-profiles', () => {
-    expect(setupReducer(start('lastfm'), { type: 'back' })).toEqual({
+  it('back from done → lidarr-profiles (lets the user retry finalising)', () => {
+    expect(setupReducer(start('done'), { type: 'back' })).toEqual({
       step: 'lidarr-profiles',
     });
   });
 
-  it('back from done → lastfm (lets the user retry finalising)', () => {
-    expect(setupReducer(start('done'), { type: 'back' })).toEqual({
-      step: 'lastfm',
-    });
-  });
-
-  it('skip from lastfm → done', () => {
-    expect(setupReducer(start('lastfm'), { type: 'skip' })).toEqual({
-      step: 'done',
-    });
-  });
-
-  it('skip is a no-op on non-skippable steps', () => {
-    for (const step of ['admin', 'lidarr-connection', 'lidarr-profiles'] as const) {
+  it('skip is a no-op on every step', () => {
+    for (const step of [
+      'admin',
+      'lidarr-connection',
+      'lidarr-profiles',
+      'done',
+    ] as const) {
       const state = start(step);
       expect(setupReducer(state, { type: 'skip' })).toBe(state);
     }
   });
 
   it('goto jumps to an arbitrary step', () => {
-    expect(setupReducer(start('admin'), { type: 'goto', step: 'lastfm' })).toEqual({
-      step: 'lastfm',
+    expect(setupReducer(start('admin'), { type: 'goto', step: 'done' })).toEqual({
+      step: 'done',
     });
   });
 
   it('reset behaves like goto', () => {
     expect(
-      setupReducer(start('lastfm'), { type: 'reset', step: 'lidarr-profiles' })
+      setupReducer(start('done'), { type: 'reset', step: 'lidarr-profiles' })
     ).toEqual({ step: 'lidarr-profiles' });
   });
 
-  it('STEP_CAN_SKIP only allows lastfm', () => {
+  it('STEP_CAN_SKIP is false for every step (no skippable step in the Lidarr-only flow)', () => {
     expect(STEP_CAN_SKIP.admin).toBe(false);
     expect(STEP_CAN_SKIP['lidarr-connection']).toBe(false);
     expect(STEP_CAN_SKIP['lidarr-profiles']).toBe(false);
-    expect(STEP_CAN_SKIP.lastfm).toBe(true);
     expect(STEP_CAN_SKIP.done).toBe(false);
   });
 
-  it('VISIBLE_STEPS lists the four wizard pages in order', () => {
+  it('VISIBLE_STEPS lists the three visible wizard pages in order', () => {
     expect(VISIBLE_STEPS).toEqual([
       'admin',
       'lidarr-connection',
       'lidarr-profiles',
-      'lastfm',
     ]);
   });
 });

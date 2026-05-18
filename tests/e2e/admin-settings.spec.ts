@@ -3,7 +3,7 @@ import { mockHappyPath } from './_fixtures/mocks';
 import { capture, freezeUi } from './_fixtures/screenshot';
 
 test.describe('Admin settings page', () => {
-  test('shows Lidarr / Last.fm / System cards with redacted secrets', async ({
+  test('shows Lidarr / System cards with redacted secrets', async ({
     page,
   }) => {
     await mockHappyPath(page);
@@ -12,15 +12,13 @@ test.describe('Admin settings page', () => {
     await expect(
       page.getByRole('heading', { name: 'Settings' })
     ).toBeVisible();
-    // Three cards are rendered (System, Lidarr, Last.fm).
+    // Two cards are rendered (System, Lidarr). Discover sources are
+    // anonymous — no Last.fm card.
     await expect(
       page.getByText('System', { exact: true }).first()
     ).toBeVisible();
     await expect(
       page.getByText('Lidarr', { exact: true }).first()
-    ).toBeVisible();
-    await expect(
-      page.getByText('Last.fm', { exact: true }).first()
     ).toBeVisible();
 
     // The Lidarr API key field shows the redacted value, NOT the raw key.

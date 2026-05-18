@@ -1,10 +1,10 @@
 /**
  * Playwright route handlers that intercept every browser-facing /api/*
  * call. The dev server keeps serving the HTML/JS bundles, but no real
- * backend code (Lidarr, MusicBrainz, Last.fm, the SQLite DB) runs during
- * E2E. That keeps tests deterministic, fast, and lets us demonstrate the
- * golden path even though the user's real Lidarr is unreachable from this
- * dev machine.
+ * backend code (Lidarr, MusicBrainz, ListenBrainz, the SQLite DB) runs
+ * during E2E. That keeps tests deterministic, fast, and lets us demonstrate
+ * the golden path even though the user's real Lidarr is unreachable from
+ * this dev machine.
  *
  * Each helper returns void; mutate the supplied `Page` in-place. The
  * bigger `mockHappyPath` composes the smaller helpers.
@@ -18,7 +18,7 @@ import {
   asRequestList,
   completedSetupStatus,
   discoverConfigured,
-  discoverNotConfigured,
+  discoverEmpty,
   healthResponse,
   inRainbowsAlbumDetail,
   lidarrProfilesResponse,
@@ -42,7 +42,7 @@ type RouteState = {
   // Map of album-detail mbid -> override; same for artist
   albumOverrides: Map<string, unknown>;
   artistOverrides: Map<string, unknown>;
-  discover: typeof discoverConfigured | typeof discoverNotConfigured;
+  discover: typeof discoverConfigured;
   // Tracks which fields the wizard has saved, so /api/settings reflects
   // the wizard's progress and the wizard's "computeInitialStep" sees the
   // right resumption point.
@@ -58,7 +58,7 @@ export interface MockHandle {
   setUser(user: PublicUser | null): void;
   setSetupStatus(status: SetupStatusResponse): void;
   setRequests(rows: MusicRequestRow[]): void;
-  setDiscover(payload: typeof discoverConfigured | typeof discoverNotConfigured): void;
+  setDiscover(payload: typeof discoverConfigured): void;
 }
 
 interface MockOptions {
@@ -69,11 +69,11 @@ interface MockOptions {
   /** Initial /api/requests payload. Default: empty list. */
   requests?: MusicRequestRow[];
   /** Initial /api/discover payload. Default: configured + populated. */
-  discover?: typeof discoverConfigured | typeof discoverNotConfigured;
+  discover?: typeof discoverConfigured;
   /**
    * Initial settings view. Default: fully populated (post-setup). Pass an
    * "empty" view for setup-wizard tests so the wizard starts at the admin
-   * step rather than lastfm.
+   * step rather than at "done".
    */
   settingsView?: typeof redactedSettings;
 }
@@ -85,7 +85,6 @@ const emptySettingsView: typeof redactedSettings = {
   lidarrRootFolderPath: null as unknown as string,
   lidarrQualityProfileId: null as unknown as number,
   lidarrMetadataProfileId: null as unknown as number,
-  lastfmApiKey: null as unknown as string,
   setupCompleted: false,
 };
 
@@ -228,17 +227,6 @@ export async function installApiMocks(
 
   await page.route('**/api/settings/lidarr/profiles', (route) => {
     return json(route, 200, lidarrProfilesResponse);
-  });
-
-  await page.route('**/api/settings/lastfm', async (route) => {
-    try {
-      const body = route.request().postDataJSON() as { apiKey?: string };
-      if (body?.apiKey)
-        state.settingsView.lastfmApiKey = '••••••••' + body.apiKey.slice(-4);
-    } catch {
-      // ignore
-    }
-    return json(route, 200, state.settingsView);
   });
 
   // ---------- Health ------------------------------------------------------
@@ -460,9 +448,9 @@ export async function mockAsRegularUser(page: Page): Promise<MockHandle> {
   return installApiMocks(page, { user: regularUser });
 }
 
-/** Authenticated admin, but Last.fm not configured (Discover empty state). */
-export async function mockLastfmNotConfigured(page: Page): Promise<MockHandle> {
-  return installApiMocks(page, { discover: discoverNotConfigured });
+/** Authenticated admin with all Discover sources empty. */
+export async function mockDiscoverEmpty(page: Page): Promise<MockHandle> {
+  return installApiMocks(page, { discover: discoverEmpty });
 }
 
 /** Logged in admin viewing Requests with one FAILED row visible. */

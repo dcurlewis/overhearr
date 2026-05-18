@@ -12,9 +12,7 @@
  * options bag so tests can inject a small `minIntervalMs` and short TTLs.
  */
 
-import { readFileSync } from 'fs';
 import https from 'https';
-import path from 'path';
 
 import axios, { type AxiosError, type AxiosInstance } from 'axios';
 import { LRUCache } from 'lru-cache';
@@ -25,7 +23,9 @@ import {
   MusicBrainzUnreachableError,
 } from '../../lib/errors';
 import { logger } from '../../lib/logger';
+import { buildUserAgent } from '../../lib/packageVersion';
 import { RateLimitQueue } from '../../lib/rateLimitQueue';
+import type { DiscoverAlbum } from '../../types/discover';
 import type {
   Album,
   Artist,
@@ -92,6 +92,19 @@ type MBSearchEnvelope<K extends string, T> = {
 type MBReleaseSearch = MBSearchEnvelope<'releases', MBRelease>;
 type MBArtistSearch = MBSearchEnvelope<'artists', MBArtist>;
 
+interface MBReleaseGroupSearchHit {
+  id: string;
+  title?: string;
+  'primary-type'?: string;
+  'first-release-date'?: string;
+  'artist-credit'?: MBArtistCredit[];
+}
+
+type MBReleaseGroupSearch = MBSearchEnvelope<
+  'release-groups',
+  MBReleaseGroupSearchHit
+>;
+
 interface MBReleaseGroupLookup {
   id: string;
   title: string;
@@ -134,19 +147,7 @@ const DEFAULT_TIMEOUT = 15_000;
 
 const log = logger.child({ name: 'musicbrainz' });
 
-function readPackageVersion(): string {
-  try {
-    const pkgPath = path.resolve(__dirname, '../../../package.json');
-    const raw = readFileSync(pkgPath, 'utf8');
-    const parsed = JSON.parse(raw) as { version?: string };
-    return parsed.version ?? '0.0.0';
-  } catch {
-    return '0.0.0';
-  }
-}
-
-const PACKAGE_VERSION = readPackageVersion();
-const DEFAULT_USER_AGENT = `Overhearr/${PACKAGE_VERSION} ( https://github.com/dcurlewis/overhearr )`;
+const DEFAULT_USER_AGENT = buildUserAgent(__dirname);
 
 export class MusicBrainzClient {
   private readonly axios: AxiosInstance;
@@ -195,6 +196,12 @@ export class MusicBrainzClient {
       new CoverArtClient(
         opts.coverArtBaseUrl ? { baseUrl: opts.coverArtBaseUrl } : {}
       );
+  }
+
+  /** Test-only: forget memoised search and detail responses. */
+  clearCache(): void {
+    this.searchCache.clear();
+    this.detailCache.clear();
   }
 
   // --- Public API ----------------------------------------------------------
@@ -350,6 +357,93 @@ export class MusicBrainzClient {
     };
     this.detailCache.set(cacheKey, result);
     return result;
+  }
+
+  /**
+   * Recently released albums (release-groups), newest first.
+   *
+   * MusicBrainz `/release-group` search sorts by Lucene relevance, not by
+   * `firstreleasedate`. To approximate "most recent N albums" we:
+   *   1. Query a date window (`monthsBack` calendar months ending today).
+   *   2. Over-fetch (`limit * 4`, capped at MB's per-page max of 100).
+   *   3. Sort in-memory by `firstReleaseDate` desc.
+   *   4. Slice to `limit`.
+   *
+   * Cover art is looked up per release-group via the existing CAA helper;
+   * failures degrade to no-cover (cover art is never load-bearing).
+   */
+  async getRecentReleaseGroups(
+    options: { monthsBack?: number; limit?: number } = {}
+  ): Promise<DiscoverAlbum[]> {
+    const monthsBack = options.monthsBack ?? 1;
+    const limit = options.limit ?? 24;
+
+    const cacheKey = `getRecentReleaseGroups:${monthsBack}:${limit}`;
+    const cached = this.searchCache.get(cacheKey) as DiscoverAlbum[] | undefined;
+    if (cached) return cached;
+
+    const today = new Date();
+    const start = new Date(today);
+    start.setMonth(start.getMonth() - monthsBack);
+    const fmt = (d: Date): string => d.toISOString().slice(0, 10);
+    const from = fmt(start);
+    const to = fmt(today);
+
+    // Lucene query: only Albums released within the window. The query is
+    // URL-encoded by axios; spaces and brackets are fine as literal chars.
+    const query = `primarytype:Album AND firstreleasedate:[${from} TO ${to}]`;
+    const fetchSize = Math.min(limit * 4, 100);
+
+    const data = await this.request<MBReleaseGroupSearch>('/release-group', {
+      query,
+      limit: fetchSize,
+      fmt: 'json',
+    });
+
+    const hits = data['release-groups'] ?? [];
+
+    // Sort newest first; entries without a date sink to the bottom.
+    const sorted = [...hits].sort((a, b) => {
+      const ad = a['first-release-date'] ?? '';
+      const bd = b['first-release-date'] ?? '';
+      if (!ad && !bd) return 0;
+      if (!ad) return 1;
+      if (!bd) return -1;
+      return bd.localeCompare(ad);
+    });
+
+    const sliced = sorted.slice(0, limit);
+
+    // Look up cover art in parallel; failures (404/5xx/network) come back as
+    // an empty `{}` from `getReleaseGroupCoverArt` so a missing cover never
+    // blanks the row.
+    const covers = await Promise.all(
+      sliced.map((h) => this.getReleaseGroupCoverArt(h.id))
+    );
+
+    const items: DiscoverAlbum[] = sliced.map((h, i) => {
+      const credit = h['artist-credit']?.[0];
+      const artistName =
+        credit?.artist?.name ?? credit?.name ?? 'Unknown Artist';
+      const artistMbid = credit?.artist?.id;
+      const cover = covers[i] ?? {};
+      const album: DiscoverAlbum = {
+        mbid: h.id,
+        name: h.title ?? '',
+        artist: artistName,
+      };
+      if (artistMbid) album.artistMbid = artistMbid;
+      if (cover.thumbnailUrl ?? cover.frontUrl) {
+        album.imageUrl = cover.thumbnailUrl ?? cover.frontUrl;
+      }
+      if (h['first-release-date']) {
+        album.firstReleaseDate = h['first-release-date'];
+      }
+      return album;
+    });
+
+    this.searchCache.set(cacheKey, items);
+    return items;
   }
 
   // --- Internal ------------------------------------------------------------

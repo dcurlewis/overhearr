@@ -34,7 +34,6 @@ interface RedactedSettings {
   lidarrRootFolderPath: string | null;
   lidarrQualityProfileId: number | null;
   lidarrMetadataProfileId: number | null;
-  lastfmApiKey: string | null;
   setupCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -55,14 +54,12 @@ function toRedacted(s: Settings): RedactedSettings {
   // hint to the admin who set it). Decrypting here is safe: the response is
   // only ever sent to admins.
   const lidarrPlain = safeDecryptForRedaction(s.lidarrApiKeyEncrypted);
-  const lastfmPlain = safeDecryptForRedaction(s.lastfmApiKeyEncrypted);
   return {
     lidarrUrl: s.lidarrUrl,
     lidarrApiKey: redactSecret(lidarrPlain),
     lidarrRootFolderPath: s.lidarrRootFolderPath,
     lidarrQualityProfileId: s.lidarrQualityProfileId,
     lidarrMetadataProfileId: s.lidarrMetadataProfileId,
-    lastfmApiKey: redactSecret(lastfmPlain),
     setupCompleted: s.setupCompleted,
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
@@ -105,25 +102,6 @@ settingsRouter.patch('/lidarr', async (req, res, next) => {
       delete input.apiKey;
     }
     const updated = await settingsService.updateLidarrSettings(input);
-    res.json(toRedacted(updated));
-  } catch (err) {
-    next(err);
-  }
-});
-
-const lastfmPatchSchema = z.object({
-  apiKey: z.union([z.string().min(1), z.null()]),
-});
-
-settingsRouter.patch('/lastfm', async (req, res, next) => {
-  try {
-    const parsed = lastfmPatchSchema.safeParse(req.body);
-    if (!parsed.success) {
-      throw new ValidationError(
-        parsed.error.issues[0]?.message ?? 'Invalid request body'
-      );
-    }
-    const updated = await settingsService.updateLastfmKey(parsed.data.apiKey);
     res.json(toRedacted(updated));
   } catch (err) {
     next(err);

@@ -24,7 +24,6 @@ interface LidarrSettingsView {
   lidarrRootFolderPath: string | null;
   lidarrQualityProfileId: number | null;
   lidarrMetadataProfileId: number | null;
-  lastfmApiKey: string | null;
   setupCompleted: boolean;
   createdAt: string;
   updatedAt: string;

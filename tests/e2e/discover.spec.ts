@@ -1,9 +1,5 @@
 import { expect, test } from '@playwright/test';
-import {
-  installApiMocks,
-  mockHappyPath,
-  mockLastfmNotConfigured,
-} from './_fixtures/mocks';
+import { mockDiscoverEmpty, mockHappyPath } from './_fixtures/mocks';
 import { capture, freezeUi } from './_fixtures/screenshot';
 
 test.describe('Discover', () => {
@@ -28,46 +24,20 @@ test.describe('Discover', () => {
     await capture(page, '08-discover-light');
   });
 
-  test('Last.fm not configured shows empty state with admin CTA', async ({
+  test('renders inline empty-row messages when Discover sources return nothing', async ({
     page,
   }) => {
-    await mockLastfmNotConfigured(page);
+    await mockDiscoverEmpty(page);
     await page.goto('/');
+    // The page header still renders, but each row falls back to an inline
+    // "No top albums right now." line because every source came back empty.
     await expect(
-      page.getByRole('heading', { name: /set up last\.fm/i })
+      page.getByRole('heading', { name: /top albums/i })
     ).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: /open settings/i })
-    ).toBeVisible();
+    await expect(page.getByText(/no top albums right now/i)).toBeVisible();
+    await expect(page.getByText(/no top artists right now/i)).toBeVisible();
+    await expect(page.getByText(/no new releases right now/i)).toBeVisible();
     await freezeUi(page);
-    await capture(page, '09-discover-not-configured');
-  });
-
-  test('non-admin sees not-configured but no Open Settings CTA', async ({
-    page,
-  }) => {
-    await installApiMocks(page, {
-      user: {
-        id: 2,
-        username: 'alice',
-        role: 'USER',
-        isActive: true,
-        createdAt: '2026-05-02T12:00:00.000Z',
-        updatedAt: '2026-05-13T08:00:00.000Z',
-      } as unknown as import('../../src/types/api').PublicUser,
-      discover: {
-        configured: false,
-        topAlbums: [],
-        topArtists: [],
-        newReleases: [],
-      },
-    });
-    await page.goto('/');
-    await expect(
-      page.getByRole('heading', { name: /set up last\.fm/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole('link', { name: /open settings/i })
-    ).toHaveCount(0);
+    await capture(page, '09-discover-empty');
   });
 });

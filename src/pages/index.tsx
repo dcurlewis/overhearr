@@ -1,9 +1,7 @@
 import React from 'react';
-import Link from 'next/link';
 import useSWR from 'swr';
 import {
   ExclamationTriangleIcon,
-  RadioIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { ApiError, swrFetcher } from '../lib/api';
@@ -15,8 +13,8 @@ import { AlbumCard } from '../components/Music/AlbumCard';
 import { ArtistCard } from '../components/Music/ArtistCard';
 import type {
   DiscoverPayload,
-  LastfmAlbumWithStatus,
-  LastfmArtistWithStatus,
+  DiscoverAlbumWithStatus,
+  DiscoverArtistWithStatus,
 } from '../types/api';
 
 const DISCOVER_KEY = '/api/discover';
@@ -47,7 +45,7 @@ function SectionHeading({ children }: { children: React.ReactNode }): JSX.Elemen
 function AlbumRow({
   items,
 }: {
-  items: LastfmAlbumWithStatus[];
+  items: DiscoverAlbumWithStatus[];
 }): JSX.Element {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -68,7 +66,7 @@ function AlbumRow({
 function ArtistRow({
   items,
 }: {
-  items: LastfmArtistWithStatus[];
+  items: DiscoverArtistWithStatus[];
 }): JSX.Element {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -86,16 +84,11 @@ function ArtistRow({
 }
 
 export default function DiscoverPage(): JSX.Element {
-  const { user } = useRouteGuard({ require: 'auth' });
+  useRouteGuard({ require: 'auth' });
   const { data, error, isLoading, mutate } = useSWR<DiscoverPayload>(
     DISCOVER_KEY,
     swrFetcher
   );
-
-  const isLastfmUnreachable =
-    error instanceof ApiError &&
-    typeof error.message === 'string' &&
-    /last\.?fm.*unreachable/i.test(error.message);
 
   return (
     <div className="space-y-10">
@@ -137,17 +130,11 @@ export default function DiscoverPage(): JSX.Element {
       {!isLoading && error && (
         <EmptyState
           icon={<ExclamationTriangleIcon className="h-10 w-10" />}
-          title={
-            isLastfmUnreachable
-              ? "Last.fm isn't responding right now"
-              : "We couldn't load Discover"
-          }
+          title="We couldn't load Discover"
           description={
-            isLastfmUnreachable
-              ? 'The upstream service is unreachable. Try again in a moment.'
-              : error instanceof ApiError
-                ? error.message
-                : 'Something went wrong loading the Discover feed.'
+            error instanceof ApiError
+              ? error.message
+              : 'Something went wrong loading the Discover feed.'
           }
           cta={
             <Button variant="secondary" onClick={() => mutate()}>
@@ -157,24 +144,8 @@ export default function DiscoverPage(): JSX.Element {
         />
       )}
 
-      {/* Not configured */}
-      {!isLoading && !error && data && !data.configured && (
-        <EmptyState
-          icon={<RadioIcon className="h-10 w-10" />}
-          title="Set up Last.fm to power Discover"
-          description="Add a Last.fm API key in Settings to get top charts and new releases."
-          cta={
-            user?.role === 'ADMIN' ? (
-              <Link href="/settings">
-                <Button variant="primary">Open Settings</Button>
-              </Link>
-            ) : null
-          }
-        />
-      )}
-
-      {/* Configured + data */}
-      {!isLoading && !error && data && data.configured && (
+      {/* Data */}
+      {!isLoading && !error && data && (
         <div className="space-y-10">
           <section className="space-y-4">
             <SectionHeading>Top Albums</SectionHeading>

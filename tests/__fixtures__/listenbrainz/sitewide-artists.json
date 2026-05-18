@@ -1,0 +1,18 @@
+{
+  "payload": {
+    "from_ts": 1738368000,
+    "to_ts": 1740787200,
+    "last_updated": 1740787200,
+    "artists": [
+      {
+        "artist_name": "Radiohead",
+        "artist_mbid": "a74b1b7f-71a5-4011-9441-d0b5e4122711",
+        "listen_count": 920000000
+      },
+      {
+        "artist_name": "Tagless Artist",
+        "listen_count": 5000
+      }
+    ]
+  }
+}

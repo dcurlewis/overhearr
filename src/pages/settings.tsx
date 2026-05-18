@@ -9,7 +9,6 @@ import {
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
-import { LastfmConfigCard } from '../components/Settings/LastfmConfigCard';
 import { LidarrConfigCard } from '../components/Settings/LidarrConfigCard';
 import { useRouteGuard } from '../hooks/useRouteGuard';
 import { ApiError, swrFetcher } from '../lib/api';
@@ -21,7 +20,6 @@ interface LidarrSettingsView {
   lidarrRootFolderPath: string | null;
   lidarrQualityProfileId: number | null;
   lidarrMetadataProfileId: number | null;
-  lastfmApiKey: string | null;
   setupCompleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -86,7 +84,7 @@ export default function SettingsPage(): JSX.Element {
           Settings
         </h1>
         <p className="text-sm text-[var(--text-secondary)]">
-          Configure Lidarr and Last.fm integrations and inspect system health.
+          Configure your Lidarr connection and inspect system health.
         </p>
       </header>
 
@@ -139,16 +137,10 @@ export default function SettingsPage(): JSX.Element {
         )}
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <LidarrConfigCard
-          settings={settings}
-          onSaved={handleSettingsSaved}
-        />
-        <LastfmConfigCard
-          apiKeyRedacted={settings.lastfmApiKey}
-          onSaved={handleSettingsSaved}
-        />
-      </div>
+      <LidarrConfigCard
+        settings={settings}
+        onSaved={handleSettingsSaved}
+      />
     </div>
   );
 }
@@ -177,21 +169,13 @@ function SettingsSkeleton(): JSX.Element {
       <Card>
         <Skeleton className="h-12 w-full" />
       </Card>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <div className="space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </Card>
-        <Card>
-          <div className="space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </Card>
-      </div>
+      <Card>
+        <div className="space-y-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </Card>
     </div>
   );
 }

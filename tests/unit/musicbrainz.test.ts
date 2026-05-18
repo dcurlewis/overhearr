@@ -1,6 +1,6 @@
 import { http, HttpResponse, type DefaultBodyType, type StrictRequest } from 'msw';
 import { setupServer } from 'msw/node';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   MusicBrainzNotFoundError,
@@ -28,6 +28,7 @@ interface Counters {
   artistSearch: number;
   releaseLookup: number;
   releaseGroupLookup: number;
+  releaseGroupSearch: number;
   artistLookup: number;
   caaLookup: Record<string, number>;
 }
@@ -37,6 +38,7 @@ const counters: Counters = {
   artistSearch: 0,
   releaseLookup: 0,
   releaseGroupLookup: 0,
+  releaseGroupSearch: 0,
   artistLookup: 0,
   caaLookup: {},
 };
@@ -46,9 +48,18 @@ function resetCounters(): void {
   counters.artistSearch = 0;
   counters.releaseLookup = 0;
   counters.releaseGroupLookup = 0;
+  counters.releaseGroupSearch = 0;
   counters.artistLookup = 0;
   counters.caaLookup = {};
 }
+
+// Override-able body returned by the /release-group?query=... search handler.
+// Typed loose because msw fixtures shape varies per-test; the real route only
+// reads `data['release-groups']`.
+let releaseGroupSearchResponse: Record<string, unknown> = {
+  count: 0,
+  'release-groups': [],
+};
 
 // Per-release CAA behavior: 'hit' returns the fixture, 'missing' returns 404,
 // 'error' triggers an axios network failure.
@@ -92,6 +103,11 @@ const handlers = [
       return HttpResponse.json(releaseFallbackCanonical);
     }
     return HttpResponse.json(releaseInRainbows);
+  }),
+
+  http.get(`${MB_BASE}/release-group`, () => {
+    counters.releaseGroupSearch += 1;
+    return HttpResponse.json(releaseGroupSearchResponse);
   }),
 
   http.get(`${MB_BASE}/release-group/:mbid`, ({ params }) => {
@@ -153,6 +169,7 @@ afterEach(() => {
   caaBehavior.clear();
   releaseBehavior.clear();
   releaseGroupBehavior.clear();
+  releaseGroupSearchResponse = { count: 0, 'release-groups': [] };
 });
 afterAll(() => server.close());
 
@@ -380,5 +397,177 @@ describe('MusicBrainzClient.getReleaseGroupCoverArt', () => {
     caaBehavior.set('rg:rg-broken', 'error');
     const broken = await client.getReleaseGroupCoverArt('rg-broken');
     expect(broken).toEqual({});
+  });
+});
+
+describe('MusicBrainzClient.getRecentReleaseGroups', () => {
+  it('hits /release-group with a date-windowed Lucene query and sorts by date desc', async () => {
+    let capturedQuery: string | null = null;
+    let capturedLimit: string | null = null;
+    server.use(
+      http.get(`${MB_BASE}/release-group`, ({ request }) => {
+        counters.releaseGroupSearch += 1;
+        const url = new URL(request.url);
+        capturedQuery = url.searchParams.get('query');
+        capturedLimit = url.searchParams.get('limit');
+        return HttpResponse.json({
+          count: 3,
+          'release-groups': [
+            // Out-of-order on purpose: the client must sort.
+            {
+              id: 'rg-mid',
+              title: 'Mid Album',
+              'primary-type': 'Album',
+              'first-release-date': '2026-04-15',
+              'artist-credit': [
+                { name: 'Artist B', artist: { id: 'artist-b', name: 'Artist B' } },
+              ],
+            },
+            {
+              id: 'rg-newest',
+              title: 'Newest Album',
+              'primary-type': 'Album',
+              'first-release-date': '2026-05-01',
+              'artist-credit': [
+                { name: 'Artist A', artist: { id: 'artist-a', name: 'Artist A' } },
+              ],
+            },
+            {
+              id: 'rg-old',
+              title: 'Old Album',
+              'primary-type': 'Album',
+              'first-release-date': '2026-04-01',
+              'artist-credit': [
+                { name: 'Artist C', artist: { id: 'artist-c', name: 'Artist C' } },
+              ],
+            },
+          ],
+        });
+      })
+    );
+
+    const client = makeClient();
+    const items = await client.getRecentReleaseGroups({
+      monthsBack: 1,
+      limit: 2,
+    });
+
+    expect(capturedQuery).toMatch(/^primarytype:Album AND firstreleasedate:\[\d{4}-\d{2}-\d{2} TO \d{4}-\d{2}-\d{2}\]$/);
+    // Over-fetch (limit * 4, capped at 100).
+    expect(capturedLimit).toBe('8');
+
+    expect(items.map((i) => i.mbid)).toEqual(['rg-newest', 'rg-mid']);
+    expect(items[0]).toMatchObject({
+      mbid: 'rg-newest',
+      name: 'Newest Album',
+      artist: 'Artist A',
+      artistMbid: 'artist-a',
+      firstReleaseDate: '2026-05-01',
+    });
+  });
+
+  it('caches by (monthsBack, limit) — second identical call does not hit the network', async () => {
+    server.use(
+      http.get(`${MB_BASE}/release-group`, () => {
+        counters.releaseGroupSearch += 1;
+        return HttpResponse.json({
+          count: 1,
+          'release-groups': [
+            {
+              id: 'rg-x',
+              title: 'X',
+              'primary-type': 'Album',
+              'first-release-date': '2026-05-10',
+              'artist-credit': [{ name: 'A', artist: { id: 'a', name: 'A' } }],
+            },
+          ],
+        });
+      })
+    );
+
+    const client = makeClient();
+    await client.getRecentReleaseGroups({ monthsBack: 1, limit: 5 });
+    await client.getRecentReleaseGroups({ monthsBack: 1, limit: 5 });
+    expect(counters.releaseGroupSearch).toBe(1);
+
+    // Different limit → different cache key.
+    await client.getRecentReleaseGroups({ monthsBack: 1, limit: 6 });
+    expect(counters.releaseGroupSearch).toBe(2);
+  });
+
+  it('clamps end-of-month start dates instead of overshooting (May 31 -1 month -> April 30)', async () => {
+    // Regression for a reviewer concern about `Date#setMonth()` overflow.
+    // Modern V8 (Node 20+, our minimum) clamps the day when the resulting
+    // month is shorter than the source month — i.e. May 31 minus 1 month
+    // lands on April 30, NOT May 1. We pin that here so a future runtime
+    // downgrade or a refactor can't silently re-introduce the bug.
+    let capturedQuery: string | null = null;
+    server.use(
+      http.get(`${MB_BASE}/release-group`, ({ request }) => {
+        counters.releaseGroupSearch += 1;
+        capturedQuery = new URL(request.url).searchParams.get('query');
+        return HttpResponse.json({ count: 0, 'release-groups': [] });
+      })
+    );
+
+    vi.useFakeTimers();
+    try {
+      // Anchor "today" on May 31 so monthsBack=1 hits the overflow case.
+      vi.setSystemTime(new Date('2026-05-31T12:00:00Z'));
+      const client = makeClient();
+      await client.getRecentReleaseGroups({ monthsBack: 1, limit: 5 });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(capturedQuery).toBe(
+      'primarytype:Album AND firstreleasedate:[2026-04-30 TO 2026-05-31]'
+    );
+
+    // Run the same scenario at March 31 to cover the shorter-Feb edge.
+    capturedQuery = null;
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-03-31T12:00:00Z'));
+      const client = makeClient();
+      await client.getRecentReleaseGroups({ monthsBack: 1, limit: 5 });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    // 2026 is not a leap year; Feb has 28 days.
+    expect(capturedQuery).toBe(
+      'primarytype:Album AND firstreleasedate:[2026-02-28 TO 2026-03-31]'
+    );
+  });
+
+  it('survives missing first-release-date (those rows sink to the bottom)', async () => {
+    server.use(
+      http.get(`${MB_BASE}/release-group`, () => {
+        counters.releaseGroupSearch += 1;
+        return HttpResponse.json({
+          count: 2,
+          'release-groups': [
+            {
+              id: 'rg-undated',
+              title: 'Undated',
+              'primary-type': 'Album',
+              'artist-credit': [{ name: 'A', artist: { id: 'a', name: 'A' } }],
+            },
+            {
+              id: 'rg-dated',
+              title: 'Dated',
+              'primary-type': 'Album',
+              'first-release-date': '2026-05-01',
+              'artist-credit': [{ name: 'B', artist: { id: 'b', name: 'B' } }],
+            },
+          ],
+        });
+      })
+    );
+
+    const client = makeClient();
+    const items = await client.getRecentReleaseGroups({ limit: 2 });
+    expect(items.map((i) => i.mbid)).toEqual(['rg-dated', 'rg-undated']);
   });
 });
