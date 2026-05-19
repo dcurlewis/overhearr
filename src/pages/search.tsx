@@ -237,6 +237,7 @@ export default function SearchPage(): JSX.Element {
                         mbid={a.releaseGroupMbid || a.mbid}
                         coverArtUrl={a.coverArtUrl ?? a.thumbnailUrl}
                         requestStatus={a.requestStatus}
+                        inLibrary={a.inLibrary}
                         meta={a.firstReleaseDate?.slice(0, 4)}
                       />
                     ))}
@@ -255,6 +256,7 @@ export default function SearchPage(): JSX.Element {
                         name={a.name}
                         mbid={a.mbid}
                         requestStatus={a.requestStatus}
+                        inLibrary={a.inLibrary}
                         meta={a.disambiguation || a.country}
                       />
                     ))}

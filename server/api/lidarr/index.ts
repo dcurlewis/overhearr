@@ -44,6 +44,7 @@ import type {
   LidarrArtist,
   LidarrArtistDownloadStatus,
   LidarrDownloadStatus,
+  LidarrLibraryAlbumSummary,
   LidarrMetadataProfile,
   LidarrQualityProfile,
   LidarrRootFolder,
@@ -384,6 +385,44 @@ export class LidarrClient {
 
     const data = await this.post<RawAlbum>('/album', body);
     return { album: mapAlbum(data), artist, artistAdded };
+  }
+
+  /**
+   * Pull every album in Lidarr's library, projected down to the four IDs
+   * the librarySync worker needs (album id + foreignAlbumId, artist id +
+   * foreignArtistId). Rows with a missing foreignAlbumId or
+   * foreignArtistId are dropped — without both of those we can't answer
+   * "is this MBID in the library?" usefully.
+   *
+   * This endpoint can return a few thousand rows on a large library; the
+   * worker is expected to call this at most every `LIBRARY_SYNC_INTERVAL_MS`
+   * (default 1h) rather than per request.
+   */
+  async getAllLibraryAlbums(): Promise<LidarrLibraryAlbumSummary[]> {
+    const data = await this.get<RawAlbum[]>('/album');
+    this.parseLidarrResponse(data, { expect: 'array' });
+    const out: LidarrLibraryAlbumSummary[] = [];
+    for (const raw of data) {
+      const lidarrAlbumId = raw.id;
+      const foreignAlbumId = raw.foreignAlbumId;
+      const lidarrArtistId = raw.artistId ?? raw.artist?.id;
+      const foreignArtistId = raw.artist?.foreignArtistId;
+      if (
+        typeof lidarrAlbumId !== 'number' ||
+        !foreignAlbumId ||
+        typeof lidarrArtistId !== 'number' ||
+        !foreignArtistId
+      ) {
+        continue;
+      }
+      out.push({
+        lidarrAlbumId,
+        foreignAlbumId,
+        lidarrArtistId,
+        foreignArtistId,
+      });
+    }
+    return out;
   }
 
   /** Trigger Lidarr's "search for this artist" command. Used by Phase 4b retry flow. */

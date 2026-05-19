@@ -16,6 +16,7 @@ import {
 import { getLogger } from '../lib/logger';
 import { requireAdmin } from '../middleware/auth';
 import { requireCsrfHeader } from '../middleware/csrf';
+import { runLibrarySyncOnce } from '../services/librarySyncWorker';
 import { settingsService } from '../services/settingsService';
 
 const log = getLogger('settings');
@@ -191,6 +192,20 @@ settingsRouter.get('/lidarr/profiles', async (_req, res, next) => {
       log.error({ err }, 'unexpected error fetching lidarr profiles');
       throw err;
     }
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Force a library-sync pass now. Returns the same summary as the periodic
+ * worker. Admin-only (already enforced by `settingsRouter.use(requireAdmin)`
+ * above) and CSRF-protected.
+ */
+settingsRouter.post('/library-sync', async (_req, res, next) => {
+  try {
+    const summary = await runLibrarySyncOnce();
+    res.json(summary);
   } catch (err) {
     next(err);
   }

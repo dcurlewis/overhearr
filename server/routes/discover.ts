@@ -26,6 +26,10 @@ import { UnauthorizedError } from '../lib/errors';
 import { getLogger } from '../lib/logger';
 import { requireAuth, requireSetupComplete } from '../middleware/auth';
 import {
+  getLibraryStatusBatch,
+  libraryStatusKey,
+} from '../services/libraryLookupService';
+import {
   getRequestStatusBatch,
   requestStatusKey,
 } from '../services/requestLookupService';
@@ -88,7 +92,10 @@ discoverRouter.get('/', async (req, res, next) => {
     for (const a of topArtists) {
       if (a.mbid) lookupItems.push({ mbid: a.mbid, type: 'ARTIST' });
     }
-    const statuses = await getRequestStatusBatch(userId, lookupItems);
+    const [statuses, library] = await Promise.all([
+      getRequestStatusBatch(userId, lookupItems),
+      getLibraryStatusBatch(lookupItems),
+    ]);
 
     const enrichAlbum = (a: DiscoverAlbum): DiscoverAlbumWithStatus => {
       if (!a.mbid) return { ...a };
@@ -97,6 +104,7 @@ discoverRouter.get('/', async (req, res, next) => {
         requestStatus: statuses.get(requestStatusKey('ALBUM', a.mbid)) ?? {
           exists: false,
         },
+        inLibrary: library.get(libraryStatusKey('ALBUM', a.mbid)) ?? false,
       };
     };
     const enrichArtist = (a: DiscoverArtist): DiscoverArtistWithStatus => {
@@ -106,6 +114,7 @@ discoverRouter.get('/', async (req, res, next) => {
         requestStatus: statuses.get(requestStatusKey('ARTIST', a.mbid)) ?? {
           exists: false,
         },
+        inLibrary: library.get(libraryStatusKey('ARTIST', a.mbid)) ?? false,
       };
     };
 

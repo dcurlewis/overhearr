@@ -12,6 +12,7 @@ import { useRouteGuard } from '../../hooks/useRouteGuard';
 import { CoverArt } from '../../components/ui/CoverArt';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { Badge } from '../../components/ui/Badge';
 import { RequestStatusBadge } from '../../components/ui/RequestStatusBadge';
 import { RequestButton } from '../../components/Music/RequestButton';
 import type { AlbumDetail, RequestStatusInfo } from '../../types/api';
@@ -151,8 +152,12 @@ export default function AlbumPage(): JSX.Element {
               </>
             )}
           </div>
-          <div className="pt-2">
-            <RequestStatusBadge status={data.requestStatus} />
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            {data.inLibrary ? (
+              <Badge variant="success">In library</Badge>
+            ) : (
+              <RequestStatusBadge status={data.requestStatus} />
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <RequestButton
@@ -160,12 +165,25 @@ export default function AlbumPage(): JSX.Element {
               mbid={albumMbid}
               kind="album"
               size="lg"
+              inLibrary={data.inLibrary}
               revalidateKeys={swrKey ? [swrKey] : []}
             />
             {failureHint && (
               <p className="text-sm text-red-300">{failureHint}</p>
             )}
           </div>
+          {data.artistInLibrary && !data.inLibrary && (
+            <div
+              role="status"
+              className="mt-4 flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+            >
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-300" />
+              <span>
+                This artist is already in your library — but this album isn&apos;t
+                yet. Request it to add this release.
+              </span>
+            </div>
+          )}
           {showArtistBanner && (
             <div
               role="status"

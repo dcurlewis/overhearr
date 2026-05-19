@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { Avatar } from '../ui/Avatar';
+import { Badge } from '../ui/Badge';
 import { RequestStatusBadge } from '../ui/RequestStatusBadge';
 import type { RequestStatusInfo } from '../../types/api';
 
@@ -10,6 +11,8 @@ export interface ArtistCardProps {
   mbid?: string | null;
   imageUrl?: string | null;
   requestStatus?: RequestStatusInfo;
+  /** True when the artist already has at least one album in the Lidarr library. */
+  inLibrary?: boolean;
   meta?: React.ReactNode;
   className?: string;
 }
@@ -23,6 +26,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
   mbid,
   imageUrl,
   requestStatus,
+  inLibrary,
   meta,
   className,
 }) => {
@@ -55,10 +59,16 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
             <Avatar name={name} size="lg" className="h-full w-full text-2xl" />
           </div>
         )}
-        {requestStatus?.exists && (
+        {inLibrary ? (
           <div className="absolute right-1.5 top-1.5">
-            <RequestStatusBadge status={requestStatus} />
+            <Badge variant="success">In library</Badge>
           </div>
+        ) : (
+          requestStatus?.exists && (
+            <div className="absolute right-1.5 top-1.5">
+              <RequestStatusBadge status={requestStatus} />
+            </div>
+          )
         )}
       </div>
       <div className="min-w-0 px-1 text-center">
