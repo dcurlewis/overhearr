@@ -122,12 +122,21 @@ export default function ArtistPage(): JSX.Element {
           )}
         </div>
         <div className="pt-2">
+          {/*
+            Deliberately do NOT pass `inLibrary` here. The artist-level
+            inLibrary flag is "at least one album by this artist exists in
+            Lidarr", which is a valid signal for the badge above but a poor
+            signal for "is the full-discography request redundant?".
+            Owning one album doesn't mean owning the catalog. The user
+            should still be able to kick off an artist-wide request; the
+            already-existing per-album dedupe at request time keeps it
+            cheap.
+          */}
           <RequestButton
             requestStatus={data.requestStatus}
             mbid={artistMbid}
             kind="artist"
             size="lg"
-            inLibrary={data.inLibrary}
             revalidateKeys={swrKey ? [swrKey] : []}
             onRequestArtist={() => setConfirmOpen(true)}
             primaryVariant="primary"

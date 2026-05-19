@@ -175,6 +175,32 @@ describe('runLibrarySyncOnce', () => {
     expect(summary.upserted).toBe(2);
   });
 
+  it('concurrent calls share a single in-flight pass (no overlapping prune)', async () => {
+    await provisionAdminWithLidarr(harness);
+
+    let albumCalls = 0;
+    server.use(
+      http.get(`${LIDARR}/album`, async () => {
+        albumCalls += 1;
+        // Hold the response open long enough for both callers to enter
+        // the pass and observe the single-flight behavior.
+        await new Promise((r) => setTimeout(r, 50));
+        return HttpResponse.json(sampleAlbums);
+      })
+    );
+
+    const [a, b] = await Promise.all([
+      runLibrarySyncOnce(),
+      runLibrarySyncOnce(),
+    ]);
+
+    // Both callers see the same summary, and Lidarr was hit exactly once.
+    expect(albumCalls).toBe(1);
+    expect(a).toEqual(b);
+    expect(a.ran).toBe(true);
+    expect(a.fetched).toBe(2);
+  });
+
   it('returns ran:false when Lidarr errors during fetch', async () => {
     await provisionAdminWithLidarr(harness);
     server.use(

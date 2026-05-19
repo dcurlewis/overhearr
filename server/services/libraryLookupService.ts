@@ -4,11 +4,15 @@
  *
  * Two axes:
  *   - ALBUM by release-group MBID — direct PK lookup on
- *     `LidarrLibraryAlbum.foreignAlbumId`.
+ *     `LidarrLibraryAlbum.foreignAlbumId`. A `true` here means this exact
+ *     release-group is owned, and is a strong signal: callers can use it
+ *     to disable the album-level Request button without risk.
  *   - ARTIST by artist MBID — true if at least one row exists with that
- *     `foreignArtistId`. (We don't have a separate library-artist table —
- *     a Lidarr artist with zero albums is rare and shouldn't surface as
- *     "in library" anyway.)
+ *     `foreignArtistId`. **This is intentionally a "any album" signal**,
+ *     not "full discography owned" — useful for showing an "in library"
+ *     badge on artist cards, but NOT a strong enough signal to disable
+ *     the artist-wide Request button (the user may still want to add the
+ *     full catalog they only own one album from).
  *
  * The mirror lags up to `LIBRARY_SYNC_INTERVAL_MS` (default 1h). A `false`
  * here means "we have no record of it as of the last sync", not a hard

@@ -46,6 +46,13 @@ export interface LibrarySyncSummary {
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
+// In-flight pass — concurrent callers (background tick + manual trigger)
+// share the same promise. Without this, two passes can interleave: the
+// older pass's prune step runs after the newer pass has finished its
+// upserts, and `deleteMany({ foreignAlbumId: { notIn: oldSnapshot } })`
+// happily deletes rows the newer pass just wrote.
+let inFlight: Promise<LibrarySyncSummary> | null = null;
+
 function readIntervalFromEnv(): number {
   const raw = process.env.LIBRARY_SYNC_INTERVAL_MS;
   if (!raw) return DEFAULT_INTERVAL_MS;
@@ -97,10 +104,26 @@ interface RunOptions {
  * Run a single library-sync pass. Used by the periodic loop, the admin
  * manual-trigger endpoint, and tests. Never throws — errors are logged
  * and the summary reports `ran: false` when the pass is skipped.
+ *
+ * Single-flight: if a pass is already in progress, concurrent callers
+ * share its result instead of starting an overlapping pass. This matters
+ * because the prune step at the end of each pass is a `notIn(seenIds)`
+ * delete, and a stale snapshot pruning over a fresh one would wipe
+ * legitimate rows.
  */
 export async function runLibrarySyncOnce(
   opts: RunOptions = {}
 ): Promise<LibrarySyncSummary> {
+  if (inFlight) {
+    return inFlight;
+  }
+  inFlight = doLibrarySync(opts).finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function doLibrarySync(opts: RunOptions): Promise<LibrarySyncSummary> {
   const log = opts.logger ?? getLogger('librarySync');
   const empty: LibrarySyncSummary = {
     ran: false,
