@@ -28,6 +28,10 @@ import { musicbrainz } from '../api/musicbrainz';
 import { UnauthorizedError, ValidationError } from '../lib/errors';
 import { requireAuth, requireSetupComplete } from '../middleware/auth';
 import {
+  getLibraryStatusBatch,
+  libraryStatusKey,
+} from '../services/libraryLookupService';
+import {
   getRequestStatus,
   getRequestStatusBatch,
   requestStatusKey,
@@ -72,7 +76,10 @@ albumRouter.get('/:mbid', async (req, res, next) => {
     if (album.artistMbid) {
       items.push({ mbid: album.artistMbid, type: 'ARTIST' });
     }
-    const statuses = await getRequestStatusBatch(userId, items);
+    const [statuses, library] = await Promise.all([
+      getRequestStatusBatch(userId, items),
+      getLibraryStatusBatch(items),
+    ]);
 
     const requestStatus =
       statuses.get(requestStatusKey('ALBUM', album.releaseGroupMbid)) ??
@@ -81,11 +88,18 @@ albumRouter.get('/:mbid', async (req, res, next) => {
       ? statuses.get(requestStatusKey('ARTIST', album.artistMbid)) ??
         NOT_REQUESTED
       : NOT_REQUESTED;
+    const inLibrary =
+      library.get(libraryStatusKey('ALBUM', album.releaseGroupMbid)) ?? false;
+    const artistInLibrary = album.artistMbid
+      ? library.get(libraryStatusKey('ARTIST', album.artistMbid)) ?? false
+      : false;
 
     const body: AlbumDetail = {
       ...album,
       requestStatus,
       artistRequestStatus,
+      inLibrary,
+      artistInLibrary,
     };
     res.json(body);
   } catch (err) {
@@ -122,14 +136,20 @@ artistRouter.get('/:mbid', async (req, res, next) => {
       ...releaseGroups.map((rg) => ({ mbid: rg.mbid, type: 'ALBUM' as const })),
     ];
     const statusesPromise = getRequestStatusBatch(userId, lookupItems);
+    const libraryPromise = getLibraryStatusBatch(lookupItems);
 
-    const [covers, statuses] = await Promise.all([coverPromise, statusesPromise]);
+    const [covers, statuses, library] = await Promise.all([
+      coverPromise,
+      statusesPromise,
+      libraryPromise,
+    ]);
 
     const enriched: ReleaseGroupWithStatus[] = releaseGroups.map((rg, i) => {
       const out: ReleaseGroupWithStatus = {
         ...rg,
         requestStatus:
           statuses.get(requestStatusKey('ALBUM', rg.mbid)) ?? NOT_REQUESTED,
+        inLibrary: library.get(libraryStatusKey('ALBUM', rg.mbid)) ?? false,
       };
       if (i < ARTIST_COVER_ART_CAP) {
         const cover = covers[i];
@@ -150,6 +170,7 @@ artistRouter.get('/:mbid', async (req, res, next) => {
       ...(artist.type !== undefined ? { type: artist.type } : {}),
       requestStatus:
         statuses.get(requestStatusKey('ARTIST', artist.mbid)) ?? NOT_REQUESTED,
+      inLibrary: library.get(libraryStatusKey('ARTIST', artist.mbid)) ?? false,
       releaseGroups: enriched,
     };
     res.json(body);

@@ -14,6 +14,10 @@ import {
   startReconciliationLoop,
   stopReconciliationLoop,
 } from './services/reconciliationWorker';
+import {
+  startLibrarySyncLoop,
+  stopLibrarySyncLoop,
+} from './services/librarySyncWorker';
 
 function readVersion(): string {
   // Try a couple of locations so this works whether the compiled layout is
@@ -79,6 +83,10 @@ async function main(): Promise<void> {
     // NODE_ENV=test (tests call runReconciliationOnce() directly), so we
     // can call this unconditionally here.
     startReconciliationLoop();
+    // 4c. Background library-sync loop — mirrors Lidarr's `/album` into
+    // LidarrLibraryAlbum so search/discover responses can flag rows the
+    // user already owns. Same NODE_ENV=test no-op.
+    startLibrarySyncLoop();
   });
 
   // 5. Graceful shutdown
@@ -95,10 +103,11 @@ async function main(): Promise<void> {
     forceExit.unref();
 
     try {
-      // Stop the reconciliation loop BEFORE closing the HTTP server so a
+      // Stop the background loops BEFORE closing the HTTP server so a
       // tick mid-shutdown can't issue queries against a torn-down Prisma.
       stopReconciliationLoop();
-      logger.info('shutdown: reconciliation loop stopped');
+      stopLibrarySyncLoop();
+      logger.info('shutdown: background loops stopped');
 
       await new Promise<void>((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));

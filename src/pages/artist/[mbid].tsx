@@ -115,7 +115,11 @@ export default function ArtistPage(): JSX.Element {
         <div className="flex flex-wrap gap-2">
           {data.type && <Badge variant="neutral">{data.type}</Badge>}
           {data.country && <Badge variant="neutral">{data.country}</Badge>}
-          <RequestStatusBadge status={data.requestStatus} />
+          {data.inLibrary ? (
+            <Badge variant="success">In library</Badge>
+          ) : (
+            <RequestStatusBadge status={data.requestStatus} />
+          )}
         </div>
         <div className="pt-2">
           <RequestButton
@@ -123,6 +127,7 @@ export default function ArtistPage(): JSX.Element {
             mbid={artistMbid}
             kind="artist"
             size="lg"
+            inLibrary={data.inLibrary}
             revalidateKeys={swrKey ? [swrKey] : []}
             onRequestArtist={() => setConfirmOpen(true)}
             primaryVariant="primary"
@@ -153,6 +158,7 @@ export default function ArtistPage(): JSX.Element {
                   mbid={rg.mbid}
                   coverArtUrl={rg.coverArtUrl}
                   requestStatus={rg.requestStatus}
+                  inLibrary={rg.inLibrary}
                   meta={rg.firstReleaseDate?.slice(0, 4)}
                 />
                 <div className="px-1">
@@ -161,6 +167,7 @@ export default function ArtistPage(): JSX.Element {
                     mbid={rg.mbid}
                     kind="album"
                     size="sm"
+                    inLibrary={rg.inLibrary}
                     revalidateKeys={swrKey ? [swrKey] : []}
                     compact
                   />

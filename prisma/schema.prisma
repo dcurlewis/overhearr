@@ -61,6 +61,26 @@ model Settings {
   updatedAt               DateTime @updatedAt
 }
 
+/// Mirror of a Lidarr library row, populated periodically by the
+/// librarySync worker (see server/services/librarySyncWorker.ts). Used to
+/// answer "does the user already own this album?" without round-tripping
+/// to Lidarr on every search hit.
+///
+/// Keyed by foreignAlbumId (MusicBrainz release-group MBID, which is what
+/// Lidarr exposes as `foreignAlbumId`). foreignArtistId is also indexed
+/// so the artist-detail page can quickly enumerate which release-groups
+/// for an artist are already owned, AND so an artist with no entries
+/// resolves to "not in library".
+model LidarrLibraryAlbum {
+  foreignAlbumId  String   @id
+  foreignArtistId String
+  lidarrAlbumId   Int
+  lidarrArtistId  Int
+  syncedAt        DateTime @default(now())
+
+  @@index([foreignArtistId])
+}
+
 model MusicRequest {
   id             Int       @id @default(autoincrement())
   userId         Int

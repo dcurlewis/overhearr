@@ -49,6 +49,7 @@ afterAll(() => server.close());
 afterEach(() => server.resetHandlers(...handlers));
 
 async function clearDb(): Promise<void> {
+  await prisma.lidarrLibraryAlbum.deleteMany();
   await prisma.musicRequest.deleteMany();
   await prisma.session.deleteMany();
   await prisma.user.deleteMany();
@@ -122,12 +123,40 @@ describe('GET /api/search — happy path', () => {
     expect(res.body.artists.length).toBeGreaterThan(0);
     for (const hit of res.body.albums) {
       expect(hit.requestStatus).toEqual({ exists: false });
+      expect(hit.inLibrary).toBe(false);
       expect(typeof hit.title).toBe('string');
       expect(typeof hit.releaseGroupMbid).toBe('string');
     }
     for (const hit of res.body.artists) {
       expect(hit.requestStatus).toEqual({ exists: false });
+      expect(hit.inLibrary).toBe(false);
     }
+  }, 15_000);
+
+  it('flags inLibrary=true for albums and artists present in the local Lidarr mirror', async () => {
+    const admin = await provisionAdminAndComplete(harness);
+    // Pre-seed the local mirror with the albums search will hit. The
+    // dedupe step in MusicBrainz collapses both releases to release-group
+    // "rg-rainbows", and the artist search returns one Radiohead row.
+    await prisma.lidarrLibraryAlbum.create({
+      data: {
+        foreignAlbumId: 'rg-rainbows',
+        foreignArtistId: 'radiohead-mbid',
+        lidarrAlbumId: 1,
+        lidarrArtistId: 10,
+      },
+    });
+
+    const res = await admin.get('/api/search?q=in+rainbows');
+    expect(res.status).toBe(200);
+    const albumHit = res.body.albums.find(
+      (a: { releaseGroupMbid: string }) => a.releaseGroupMbid === 'rg-rainbows'
+    );
+    expect(albumHit?.inLibrary).toBe(true);
+    const artistHit = res.body.artists.find(
+      (a: { mbid: string }) => a.mbid === 'radiohead-mbid'
+    );
+    expect(artistHit?.inLibrary).toBe(true);
   }, 15_000);
 
   it('attaches PENDING status when the user has a previous request for the album', async () => {

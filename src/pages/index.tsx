@@ -57,6 +57,7 @@ function AlbumRow({
           mbid={it.mbid}
           coverArtUrl={it.imageUrl}
           requestStatus={it.requestStatus}
+          inLibrary={it.inLibrary}
         />
       ))}
     </div>
@@ -77,6 +78,7 @@ function ArtistRow({
           mbid={it.mbid}
           imageUrl={it.imageUrl}
           requestStatus={it.requestStatus}
+          inLibrary={it.inLibrary}
         />
       ))}
     </div>

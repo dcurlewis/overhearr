@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import clsx from 'clsx';
+import { Badge } from '../ui/Badge';
 import { CoverArt } from '../ui/CoverArt';
 import { RequestStatusBadge } from '../ui/RequestStatusBadge';
 import type { RequestStatusInfo } from '../../types/api';
@@ -19,6 +20,13 @@ export interface AlbumCardProps {
   mbid?: string | null;
   /** Per-user request status — badge is shown only when `exists`. */
   requestStatus?: RequestStatusInfo;
+  /**
+   * True when the album is already in the configured Lidarr library.
+   * Renders a subtle "In library" badge in place of the request-status
+   * badge (the request status badge is suppressed when in-library is true,
+   * since "already in your library" supersedes any open request row).
+   */
+  inLibrary?: boolean;
   /** Optional secondary line (year, label, etc.) shown under the artist. */
   meta?: React.ReactNode;
   className?: string;
@@ -35,6 +43,7 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
   artist,
   mbid,
   requestStatus,
+  inLibrary,
   meta,
   className,
 }) => {
@@ -60,10 +69,16 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
           rounded="md"
           className="transition group-hover:-translate-y-0.5 group-hover:shadow-lg"
         />
-        {requestStatus?.exists && (
+        {inLibrary ? (
           <div className="absolute right-1.5 top-1.5">
-            <RequestStatusBadge status={requestStatus} />
+            <Badge variant="success">In library</Badge>
           </div>
+        ) : (
+          requestStatus?.exists && (
+            <div className="absolute right-1.5 top-1.5">
+              <RequestStatusBadge status={requestStatus} />
+            </div>
+          )
         )}
       </div>
       <div className="min-w-0 px-1">

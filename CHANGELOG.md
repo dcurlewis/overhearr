@@ -6,6 +6,18 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Library sync indicator.** Search, album/artist detail, and Discover
+  cards now show a subtle "In library" badge for items already present in
+  the configured Lidarr library, and the Request button is replaced with a
+  disabled "In library" state so users can't kick off redundant requests.
+  Backed by a new periodic worker (`librarySyncWorker`, default 1h
+  cadence, configurable via `LIBRARY_SYNC_INTERVAL_MS`) that mirrors
+  Lidarr's `/api/v1/album` into a local `LidarrLibraryAlbum` table.
+  Admins can force a sync via `POST /api/settings/library-sync`. Closes
+  #5.
+
 ### Fixed
 
 - **`TRUST_PROXY=true` now trusts a single upstream hop.** Previously

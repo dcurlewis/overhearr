@@ -227,6 +227,7 @@ export const searchInRainbows: SearchResponse = {
         IN_RAINBOWS_RG +
         '/front-250.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
     {
       mbid: 'rel-okcomputer-aaaa',
@@ -241,6 +242,7 @@ export const searchInRainbows: SearchResponse = {
         OK_COMPUTER_RG +
         '/front-500.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
   ],
   artists: [
@@ -251,6 +253,7 @@ export const searchInRainbows: SearchResponse = {
       country: 'GB',
       type: 'Group',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
   ],
 };
@@ -286,6 +289,8 @@ export const inRainbowsAlbumDetail: AlbumDetail = {
   ],
   requestStatus: { exists: false },
   artistRequestStatus: { exists: false },
+  inLibrary: false,
+  artistInLibrary: false,
 };
 
 // ---- Artist detail --------------------------------------------------------
@@ -298,6 +303,7 @@ export const radioheadArtistDetail: ArtistDetail = {
   type: 'Group',
   disambiguation: 'British rock band',
   requestStatus: { exists: false },
+  inLibrary: false,
   releaseGroups: [
     {
       mbid: 'rg-pablo-honey',
@@ -307,6 +313,7 @@ export const radioheadArtistDetail: ArtistDetail = {
       coverArtUrl:
         'https://coverartarchive.org/release-group/rg-pablo-honey/front-250.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
     {
       mbid: 'rg-the-bends',
@@ -316,6 +323,7 @@ export const radioheadArtistDetail: ArtistDetail = {
       coverArtUrl:
         'https://coverartarchive.org/release-group/rg-the-bends/front-250.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
     {
       mbid: OK_COMPUTER_RG,
@@ -327,6 +335,7 @@ export const radioheadArtistDetail: ArtistDetail = {
         OK_COMPUTER_RG +
         '/front-250.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
     {
       mbid: KID_A_RG,
@@ -338,6 +347,7 @@ export const radioheadArtistDetail: ArtistDetail = {
         KID_A_RG +
         '/front-250.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
     {
       mbid: 'rg-amnesiac',
@@ -347,6 +357,7 @@ export const radioheadArtistDetail: ArtistDetail = {
       coverArtUrl:
         'https://coverartarchive.org/release-group/rg-amnesiac/front-250.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
     {
       mbid: IN_RAINBOWS_RG,
@@ -358,6 +369,7 @@ export const radioheadArtistDetail: ArtistDetail = {
         IN_RAINBOWS_RG +
         '/front-250.jpg',
       requestStatus: { exists: false },
+      inLibrary: false,
     },
   ],
 };

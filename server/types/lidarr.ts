@@ -55,6 +55,22 @@ export interface LidarrAlbum {
   anyReleaseOk: boolean;
 }
 
+/**
+ * Minimal projection of an album-in-library row, used by the librarySync
+ * worker. The fields below are everything the worker needs to decide
+ * "in library" — we deliberately drop the rest of the album payload at
+ * the client boundary so a Lidarr schema drift can't leak into the
+ * sync writer.
+ */
+export interface LidarrLibraryAlbumSummary {
+  lidarrAlbumId: number;
+  /** MusicBrainz release-group MBID. */
+  foreignAlbumId: string;
+  lidarrArtistId: number;
+  /** MusicBrainz artist MBID. */
+  foreignArtistId: string;
+}
+
 export type LidarrMonitorOption =
   | 'all'
   | 'future'

@@ -14,6 +14,13 @@ export interface RequestButtonProps {
   mbid: string;
   kind: RequestKind;
   size?: ButtonSize;
+  /**
+   * True when the album/artist is already in the Lidarr library, per the
+   * latest sync. When true and there is no open request row, the button
+   * renders as a disabled "In library" indicator instead of "Request" so
+   * users can't kick off a redundant request.
+   */
+  inLibrary?: boolean;
   /** SWR keys to revalidate after success (e.g. the page's primary key). */
   revalidateKeys?: string[];
   /**
@@ -60,6 +67,7 @@ export const RequestButton: React.FC<RequestButtonProps> = ({
   mbid,
   kind,
   size = 'md',
+  inLibrary = false,
   revalidateKeys,
   onRequestArtist,
   primaryVariant = 'primary',
@@ -86,6 +94,18 @@ export const RequestButton: React.FC<RequestButtonProps> = ({
   };
 
   if (!requestStatus.exists) {
+    if (inLibrary) {
+      return (
+        <Button
+          variant="secondary"
+          size={size}
+          disabled
+          className={clsx(compact && 'w-full', className)}
+        >
+          In library
+        </Button>
+      );
+    }
     return (
       <Button
         variant={primaryVariant}

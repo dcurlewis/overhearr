@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { musicbrainz } from '../api/musicbrainz';
 import { UnauthorizedError, ValidationError } from '../lib/errors';
 import { requireAuth, requireSetupComplete } from '../middleware/auth';
+import { getLibraryStatusBatch, libraryStatusKey } from '../services/libraryLookupService';
 import { getRequestStatusBatch, requestStatusKey } from '../services/requestLookupService';
 import type {
   AlbumSearchHit,
@@ -74,18 +75,24 @@ searchRouter.get('/', async (req, res, next) => {
     for (const a of artists) {
       if (a.mbid) lookupItems.push({ mbid: a.mbid, type: 'ARTIST' });
     }
-    const statuses = await getRequestStatusBatch(userId, lookupItems);
+    const [statuses, library] = await Promise.all([
+      getRequestStatusBatch(userId, lookupItems),
+      getLibraryStatusBatch(lookupItems),
+    ]);
 
     const albumHits: AlbumSearchHit[] = albums.map((a) => ({
       ...a,
       requestStatus:
         statuses.get(requestStatusKey('ALBUM', a.releaseGroupMbid)) ??
         NOT_REQUESTED,
+      inLibrary:
+        library.get(libraryStatusKey('ALBUM', a.releaseGroupMbid)) ?? false,
     }));
     const artistHits: ArtistSearchHit[] = artists.map((a) => ({
       ...a,
       requestStatus:
         statuses.get(requestStatusKey('ARTIST', a.mbid)) ?? NOT_REQUESTED,
+      inLibrary: library.get(libraryStatusKey('ARTIST', a.mbid)) ?? false,
     }));
 
     const body: SearchResponse = { albums: albumHits, artists: artistHits };

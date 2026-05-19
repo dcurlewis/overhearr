@@ -88,10 +88,18 @@ export type RequestStatusInfo =
 
 export type AlbumSearchHit = Album & {
   requestStatus: RequestStatusInfo;
+  /**
+   * True when this release-group is already present in the configured
+   * Lidarr library, per the most recent librarySync pass. Lags up to
+   * LIBRARY_SYNC_INTERVAL_MS (default 1h).
+   */
+  inLibrary: boolean;
 };
 
 export type ArtistSearchHit = Artist & {
   requestStatus: RequestStatusInfo;
+  /** True when at least one album by this artist is in the Lidarr library. */
+  inLibrary: boolean;
 };
 
 export interface SearchResponse {
@@ -109,15 +117,19 @@ export interface SearchResponse {
 export type AlbumDetail = Album & {
   requestStatus: RequestStatusInfo;
   artistRequestStatus: RequestStatusInfo;
+  inLibrary: boolean;
+  artistInLibrary: boolean;
 };
 
 export type ReleaseGroupWithStatus = ReleaseGroup & {
   requestStatus: RequestStatusInfo;
   coverArtUrl?: string;
+  inLibrary: boolean;
 };
 
 export type ArtistDetail = Omit<ArtistDetails, 'releaseGroups'> & {
   requestStatus: RequestStatusInfo;
+  inLibrary: boolean;
   releaseGroups: ReleaseGroupWithStatus[];
 };
 
@@ -126,10 +138,13 @@ export type ArtistDetail = Omit<ArtistDetails, 'releaseGroups'> & {
 export type DiscoverAlbumWithStatus = DiscoverAlbum & {
   /** Only present when the row carries a usable mbid. */
   requestStatus?: RequestStatusInfo;
+  /** Only present when the row carries a usable mbid. */
+  inLibrary?: boolean;
 };
 
 export type DiscoverArtistWithStatus = DiscoverArtist & {
   requestStatus?: RequestStatusInfo;
+  inLibrary?: boolean;
 };
 
 /**
