@@ -30,8 +30,25 @@ export default function Document() {
       <Head>
         <meta charSet="utf-8" />
         <meta name="theme-color" content="#17141a" />
-        <link rel="icon" href="/overhearr.png" />
-        <link rel="preload" as="image" href="/overhearr.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <meta
+          name="description"
+          content="Overseerr for Lidarr — a self-hosted music request manager."
+        />
+        {/* Open Graph / social card */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Overhearr" />
+        <meta property="og:title" content="Overhearr" />
+        <meta
+          property="og:description"
+          content="Overseerr for Lidarr — a self-hosted music request manager."
+        />
+        <meta property="og:image" content="/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="/og-image.png" />
         {/* FOUC prevention for theme — must run before <Main /> hydrates */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </Head>

@@ -6,9 +6,10 @@ import clsx from 'clsx';
  * centre dot. Drawn entirely in `currentColor` so it inherits the surrounding
  * text colour (the brand accent in the header, neutral elsewhere).
  *
- * PLACEHOLDER: this geometric mark stands in until the user supplies the final
- * icon art (see issue #15). When the real artwork lands, swap the <svg> body
- * here and regenerate the favicon / PWA icon set from the same source.
+ * This is the official Overhearr mark (brand direction "Groove", see issue
+ * #15). The favicon / PWA / OG icon set under `public/` is generated from the
+ * same geometry — if you change the <svg> body here, regenerate those assets
+ * to match.
  */
 export const GrooveMark: React.FC<{ className?: string; title?: string }> = ({
   className,

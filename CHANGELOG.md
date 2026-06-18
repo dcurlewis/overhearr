@@ -38,11 +38,14 @@ and the project follows [Semantic Versioning](https://semver.org/).
   `--motion-ease`). Status badges, toasts, focus rings, links, and accents
   across the UI now read from these tokens instead of inline Tailwind colour
   utilities. Added a single-colour `currentColor` "Groove" wordmark/logo
-  lockup (placeholder pending final icon art) to the sidebar and auth screen,
-  and wired self-hosted Fraunces (display) + Inter (body) `@font-face` rules
-  with graceful fallback stacks. Dark-mode contrast verified to WCAG AA for
-  body and muted text. The favicon / PWA icon set / OG card remain a
-  follow-up, blocked on user-supplied icon art.
+  lockup to the sidebar and auth screen, and wired self-hosted Fraunces
+  (display) + Inter (body) `@font-face` rules with graceful fallback stacks.
+  Dark-mode contrast verified to WCAG AA for body and muted text. Generated
+  the full "Groove" icon set from the mark — `favicon.ico`, SVG favicon,
+  192/512 + maskable PWA icons, apple-touch icon, `site.webmanifest`, and a
+  1200×630 OG/social card — and wired them into the document head, replacing
+  the old `overhearr.png`. (Self-hosted `.woff2` font files still need to be
+  dropped into `public/fonts/`; the UI uses fallback faces until then.)
 - **Discover sources rewritten.** Last.fm retired the `chart.gettopalbums`
   and `geo.gettopalbums` endpoints (silently — they return method-not-found
   for any new key), so two of the three Discover rows had been permanently
