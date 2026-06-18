@@ -90,3 +90,6 @@ tsconfig.tsbuildinfo
 
 # Config Cache Directory
 config/cache
+
+# Image proxy cache (dev default; IMAGE_CACHE_DIR)
+.cache/

@@ -159,7 +159,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Pre-create /config so a missing bind-mount still works (entrypoint also
 # does this, but having it owned by `node` from the start avoids a perms
 # scuffle on first boot when the host volume is fresh and empty).
-RUN mkdir -p /config/db && chown -R node:node /config
+RUN mkdir -p /config/db /config/cache/images && chown -R node:node /config
 
 USER node
 

@@ -15,8 +15,9 @@ import { Badge } from '../../components/ui/Badge';
 import { RequestStatusBadge } from '../../components/ui/RequestStatusBadge';
 import { AlbumCard } from '../../components/Music/AlbumCard';
 import { RequestButton } from '../../components/Music/RequestButton';
+import { SimilarArtistsRow } from '../../components/Music/SimilarRow';
 import { useRequestAction } from '../../hooks/useRequestAction';
-import type { ArtistDetail } from '../../types/api';
+import type { ArtistDetail, SimilarArtistsPayload } from '../../types/api';
 
 function HeroSkeleton(): JSX.Element {
   return (
@@ -50,6 +51,13 @@ export default function ArtistPage(): JSX.Element {
 
   const swrKey = mbid ? `/api/artist/${encodeURIComponent(mbid)}` : null;
   const { data, error, isLoading } = useSWR<ArtistDetail>(swrKey, swrFetcher);
+
+  // Similar artists load independently; the row renders nothing when empty.
+  const similarKey = mbid
+    ? `/api/artist/${encodeURIComponent(mbid)}/similar`
+    : null;
+  const { data: similar, isLoading: similarLoading } =
+    useSWR<SimilarArtistsPayload>(similarKey, swrFetcher);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { inFlight, requestArtist } = useRequestAction({
@@ -186,6 +194,14 @@ export default function ArtistPage(): JSX.Element {
           </div>
         )}
       </section>
+
+      {/* Similar artists */}
+      <SimilarArtistsRow
+        title="Similar artists"
+        items={similar?.items}
+        isLoading={similarLoading}
+        revalidateKeys={similarKey ? [similarKey] : []}
+      />
 
       {/* Confirm artist-wide request */}
       <Modal

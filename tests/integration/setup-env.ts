@@ -37,6 +37,12 @@ const dbFile = path.join(dbDir, 'test.db');
 const url = `file:${dbFile}`;
 env.DATABASE_URL = url;
 
+// Image-proxy cache writes to disk; point it at the per-worker tmp dir so the
+// singleton (constructed at module load) never writes under the repo CWD.
+const imageCacheDir = path.join(dir, 'cache', 'images');
+mkdirSync(imageCacheDir, { recursive: true });
+env.IMAGE_CACHE_DIR ??= imageCacheDir;
+
 const prismaBin = path.join(REPO_ROOT, 'node_modules', '.bin', 'prisma');
 execFileSync(prismaBin, ['migrate', 'deploy', '--schema', SCHEMA_PATH], {
   env: { ...process.env, DATABASE_URL: url },

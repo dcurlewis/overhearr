@@ -13,8 +13,10 @@ set -eu
 
 CONFIG_DIR="${CONFIG_DIR:-/config}"
 DB_DIR="${CONFIG_DIR}/db"
+# Image-proxy cache (see IMAGE_CACHE_DIR; defaults to /config/cache/images).
+CACHE_DIR="${CONFIG_DIR}/cache/images"
 
-mkdir -p "${DB_DIR}"
+mkdir -p "${DB_DIR}" "${CACHE_DIR}"
 
 # Defensive: if the bind-mount was created with different ownership on
 # the host, we may not be able to write here. Surface that early with a
