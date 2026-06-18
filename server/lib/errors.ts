@@ -47,6 +47,17 @@ export class ConflictError extends AppError {
 }
 
 /**
+ * Thrown when a non-admin user would exceed their request quota (active or
+ * weekly). Maps to HTTP 429 so the frontend can surface the friendly message
+ * in a toast. See server/services/quotaService.ts.
+ */
+export class QuotaExceededError extends AppError {
+  constructor(message = 'Request quota exceeded') {
+    super(message, 429, 'QUOTA_EXCEEDED');
+  }
+}
+
+/**
  * MusicBrainz client errors. These are thrown by the MusicBrainz client and
  * Cover Art Archive helpers; route handlers can either let them propagate
  * (the central error handler will translate them) or catch and substitute a
@@ -151,5 +162,41 @@ export class LidarrNotConfiguredError extends AppError {
 export class RequestNotFoundError extends NotFoundError {
   constructor(message = 'Request not found') {
     super(message);
+  }
+}
+
+/**
+ * Image-proxy errors (`/api/image`).
+ *
+ * `ImageSourceNotAllowedError` is thrown when a `src` fails the SSRF
+ * allowlist (wrong scheme or a host the app never legitimately renders).
+ * It maps to a 400 because the request is malformed from the client's point
+ * of view, not a server fault.
+ */
+export class ImageSourceNotAllowedError extends AppError {
+  constructor(message = 'Image source is not allowed') {
+    super(message, 400, 'IMAGE_SOURCE_NOT_ALLOWED');
+  }
+}
+
+/**
+ * Thrown when the upstream image fetch fails (network error, timeout, or a
+ * non-2xx status). Maps to 502 — the proxy itself is fine, the upstream is
+ * not.
+ */
+export class ImageUpstreamError extends AppError {
+  constructor(message = 'Upstream image fetch failed') {
+    super(message, 502, 'IMAGE_UPSTREAM_ERROR');
+  }
+}
+
+/**
+ * Thrown when the upstream responds 2xx but the payload is not an image
+ * (e.g. an HTML error page). Refusing non-image content types keeps the
+ * proxy from being abused as a generic fetch relay.
+ */
+export class ImageNotAnImageError extends AppError {
+  constructor(message = 'Upstream response is not an image') {
+    super(message, 502, 'IMAGE_NOT_AN_IMAGE');
   }
 }

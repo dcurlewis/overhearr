@@ -11,6 +11,8 @@
 export interface ApiErrorBody {
   message?: string;
   code?: string;
+  /** The API error handler nests details here: `{ error: { code, message } }`. */
+  error?: { code?: string; message?: string };
   [key: string]: unknown;
 }
 
@@ -88,12 +90,22 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
 
   if (!res.ok) {
     const errBody = (body && typeof body === 'object' ? (body as ApiErrorBody) : undefined);
+    // The API error handler wraps details under a nested `error` object
+    // (`{ error: { code, message } }`); fall back to top-level fields for any
+    // flat payloads, then to a generic message.
+    const nested = errBody?.error;
     const message =
-      errBody?.message && typeof errBody.message === 'string'
-        ? errBody.message
-        : `Request failed with status ${res.status}`;
+      typeof nested?.message === 'string'
+        ? nested.message
+        : typeof errBody?.message === 'string'
+          ? errBody.message
+          : `Request failed with status ${res.status}`;
     const code =
-      errBody?.code && typeof errBody.code === 'string' ? errBody.code : undefined;
+      typeof nested?.code === 'string'
+        ? nested.code
+        : typeof errBody?.code === 'string'
+          ? errBody.code
+          : undefined;
     throw new ApiError(res.status, message, code, errBody);
   }
 

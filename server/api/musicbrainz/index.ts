@@ -82,6 +82,12 @@ interface MBArtist {
   country?: string;
   type?: string;
   'release-groups'?: MBReleaseGroupRef[];
+  relations?: MBArtistRelation[];
+}
+
+interface MBArtistRelation {
+  type?: string;
+  artist?: { id?: string; name?: string; 'sort-name'?: string };
 }
 
 type MBSearchEnvelope<K extends string, T> = {
@@ -144,6 +150,19 @@ const DEFAULT_DETAIL_TTL = 60 * 60 * 1000;
 const DEFAULT_SEARCH_MAX = 200;
 const DEFAULT_DETAIL_MAX = 500;
 const DEFAULT_TIMEOUT = 15_000;
+
+// MusicBrainz artist-artist relationship types that imply musical similarity.
+// Everything else (label, area, "is person", URLs) is dropped as noise when we
+// use MB as the similar-artist fallback.
+const RELATED_ARTIST_REL_TYPES = new Set<string>([
+  'collaboration',
+  'member of band',
+  'is person',
+  'artistic director',
+  'supporting musician',
+  'tribute',
+  'influence',
+]);
 
 const log = logger.child({ name: 'musicbrainz' });
 
@@ -357,6 +376,52 @@ export class MusicBrainzClient {
     };
     this.detailCache.set(cacheKey, result);
     return result;
+  }
+
+  /**
+   * Related artists via MusicBrainz artist-artist relationships. This is the
+   * graph-traversal *fallback* for the similar-artist rows when ListenBrainz's
+   * collaborative-filtering source degrades — less personalised but cheap and
+   * always available. We surface the musically-relevant relation types
+   * (collaboration, member-of-band, influence, supporting musician) and drop
+   * the rest (label / area / URL rels add noise, not similarity).
+   *
+   * Returns deduped `{ mbid, name }` cards, capped at `limit`.
+   */
+  async getRelatedArtists(
+    mbid: string,
+    options: { limit?: number } = {}
+  ): Promise<Artist[]> {
+    const limit = options.limit ?? 18;
+    const cacheKey = `getRelatedArtists:${mbid}:${limit}`;
+    const cached = this.detailCache.get(cacheKey) as Artist[] | undefined;
+    if (cached) return cached;
+
+    const data = await this.request<MBArtist>(`/artist/${mbid}`, {
+      inc: 'artist-rels',
+      fmt: 'json',
+    });
+
+    const out: Artist[] = [];
+    const seen = new Set<string>();
+    for (const rel of data.relations ?? []) {
+      if (!rel.type || !RELATED_ARTIST_REL_TYPES.has(rel.type)) continue;
+      const related = rel.artist;
+      if (!related?.id || related.id === mbid) continue;
+      if (seen.has(related.id)) continue;
+      const name = (related.name ?? '').trim();
+      if (name.length === 0) continue;
+      seen.add(related.id);
+      out.push({
+        mbid: related.id,
+        name,
+        sortName: related['sort-name'] ?? name,
+      });
+      if (out.length >= limit) break;
+    }
+
+    this.detailCache.set(cacheKey, out);
+    return out;
   }
 
   /**

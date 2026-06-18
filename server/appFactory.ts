@@ -12,6 +12,7 @@ import { PrismaSessionStore } from './middleware/sessionStore';
 import { authRouter } from './routes/auth';
 import { discoverRouter } from './routes/discover';
 import { healthRouter } from './routes/health';
+import { imageRouter } from './routes/image';
 import { albumRouter, artistRouter } from './routes/music';
 import { profileRouter } from './routes/profile';
 import { requestsRouter } from './routes/requests';
@@ -123,6 +124,7 @@ export function buildApp(options: BuildAppOptions = {}): BuiltApp {
   app.use('/api/artist', artistRouter);
   app.use('/api/discover', discoverRouter);
   app.use('/api/requests', requestsRouter);
+  app.use('/api/image', imageRouter);
 
   // 404 for unmatched /api/* routes — non-/api falls through to whatever the
   // caller mounts via attachExtraHandlers (e.g. Next.js).

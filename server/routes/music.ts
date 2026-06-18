@@ -36,11 +36,20 @@ import {
   getRequestStatusBatch,
   requestStatusKey,
 } from '../services/requestLookupService';
+import {
+  getSimilarAlbums,
+  getSimilarArtists,
+} from '../services/similarService';
+import type { DiscoverAlbum, DiscoverArtist } from '../types/discover';
 import type {
   AlbumDetail,
   ArtistDetail,
+  DiscoverAlbumWithStatus,
+  DiscoverArtistWithStatus,
   ReleaseGroupWithStatus,
   RequestStatusInfo,
+  SimilarAlbumsPayload,
+  SimilarArtistsPayload,
 } from '../../src/types/api';
 
 /** Maximum number of release-groups to fetch cover art for, per artist. */
@@ -51,6 +60,56 @@ const NOT_REQUESTED: RequestStatusInfo = { exists: false };
 const mbidParamSchema = z.object({
   mbid: z.string().min(1, 'mbid is required').max(64),
 });
+
+/**
+ * Attach per-user request status + in-library flags to similar-recommendation
+ * cards. Mirrors the Discover route's enrichment: only rows carrying an mbid
+ * are looked up; rows without one keep `requestStatus` / `inLibrary` undefined
+ * and the frontend falls back to a search CTA. Runs one batched DB lookup for
+ * the whole list.
+ */
+async function enrichSimilarItems(
+  userId: number,
+  albums: DiscoverAlbum[],
+  artists: DiscoverArtist[]
+): Promise<{
+  albums: DiscoverAlbumWithStatus[];
+  artists: DiscoverArtistWithStatus[];
+}> {
+  const lookupItems: Array<{ mbid: string; type: 'ALBUM' | 'ARTIST' }> = [];
+  for (const a of albums) {
+    if (a.mbid) lookupItems.push({ mbid: a.mbid, type: 'ALBUM' });
+  }
+  for (const a of artists) {
+    if (a.mbid) lookupItems.push({ mbid: a.mbid, type: 'ARTIST' });
+  }
+
+  const [statuses, library] = await Promise.all([
+    getRequestStatusBatch(userId, lookupItems),
+    getLibraryStatusBatch(lookupItems),
+  ]);
+
+  const enrichedAlbums = albums.map((a): DiscoverAlbumWithStatus => {
+    if (!a.mbid) return { ...a };
+    return {
+      ...a,
+      requestStatus:
+        statuses.get(requestStatusKey('ALBUM', a.mbid)) ?? NOT_REQUESTED,
+      inLibrary: library.get(libraryStatusKey('ALBUM', a.mbid)) ?? false,
+    };
+  });
+  const enrichedArtists = artists.map((a): DiscoverArtistWithStatus => {
+    if (!a.mbid) return { ...a };
+    return {
+      ...a,
+      requestStatus:
+        statuses.get(requestStatusKey('ARTIST', a.mbid)) ?? NOT_REQUESTED,
+      inLibrary: library.get(libraryStatusKey('ARTIST', a.mbid)) ?? false,
+    };
+  });
+
+  return { albums: enrichedAlbums, artists: enrichedArtists };
+}
 
 export const albumRouter = Router();
 albumRouter.use(requireAuth);
@@ -101,6 +160,32 @@ albumRouter.get('/:mbid', async (req, res, next) => {
       inLibrary,
       artistInLibrary,
     };
+    res.json(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// "More like this" — albums similar to this one. ListenBrainz primary,
+// MusicBrainz fallback, per-source graceful degrade (empty rows, never a 502).
+// Cache-Control matches Discover: a short private window to cut flicker on top
+// of the clients' own 1h LRU.
+albumRouter.get('/:mbid/similar', async (req, res, next) => {
+  try {
+    if (!req.user) throw new UnauthorizedError('Authentication required');
+    const userId = req.user.id;
+
+    const parsed = mbidParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      throw new ValidationError('mbid is required');
+    }
+    const { mbid } = parsed.data;
+
+    const similar = await getSimilarAlbums(mbid);
+    const { albums } = await enrichSimilarItems(userId, similar, []);
+
+    const body: SimilarAlbumsPayload = { items: albums };
+    res.set('Cache-Control', 'private, max-age=300');
     res.json(body);
   } catch (err) {
     next(err);
@@ -173,6 +258,30 @@ artistRouter.get('/:mbid', async (req, res, next) => {
       inLibrary: library.get(libraryStatusKey('ARTIST', artist.mbid)) ?? false,
       releaseGroups: enriched,
     };
+    res.json(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// "Similar artists" — artists similar to this one. ListenBrainz primary,
+// MusicBrainz relationships fallback, per-source graceful degrade.
+artistRouter.get('/:mbid/similar', async (req, res, next) => {
+  try {
+    if (!req.user) throw new UnauthorizedError('Authentication required');
+    const userId = req.user.id;
+
+    const parsed = mbidParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      throw new ValidationError('mbid is required');
+    }
+    const { mbid } = parsed.data;
+
+    const similar = await getSimilarArtists(mbid);
+    const { artists } = await enrichSimilarItems(userId, [], similar);
+
+    const body: SimilarArtistsPayload = { items: artists };
+    res.set('Cache-Control', 'private, max-age=300');
     res.json(body);
   } catch (err) {
     next(err);

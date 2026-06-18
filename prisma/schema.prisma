@@ -30,6 +30,11 @@ model User {
   passwordHash String
   role         String   @default("USER") // UserRole: ADMIN | USER
   isActive     Boolean  @default(true)
+  // Per-user request-quota overrides. null = inherit the global default
+  // (Settings.defaultQuota*). Enforced at the request-create boundary; see
+  // server/services/quotaService.ts. Admins are exempt from quotas entirely.
+  quotaActiveLimit Int?
+  quotaWeeklyLimit Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -57,6 +62,11 @@ model Settings {
   lidarrQualityProfileId  Int?
   lidarrMetadataProfileId Int?
   setupCompleted          Boolean  @default(false)
+  // Global default request quotas applied to non-admin users that have no
+  // per-user override. null = unlimited (quotas effectively disabled for
+  // that axis). See server/services/quotaService.ts.
+  defaultQuotaActiveLimit Int?
+  defaultQuotaWeeklyLimit Int?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }

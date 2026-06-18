@@ -8,6 +8,41 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Per-user request quotas (optional).** Admins can cap how many requests
+  non-admin users make, along two independent axes: max simultaneous active
+  requests (`PENDING` + `PROCESSING`) and max new requests per rolling 7
+  days. Configured globally under Settings → Request quotas, with an
+  optional per-user override on the Users page. Resolution order is
+  per-user override → global default → unlimited (leaving a field empty
+  means unlimited). Enforcement runs at the request-create boundary before
+  any Lidarr call and returns HTTP 429 (`QUOTA_EXCEEDED`) with a friendly
+  message surfaced as a toast. Admins are always exempt. Adds nullable
+  `User.quotaActiveLimit` / `User.quotaWeeklyLimit` and
+  `Settings.defaultQuotaActiveLimit` / `Settings.defaultQuotaWeeklyLimit`
+  columns (additive migration). Closes #8.
+- **Similar-album and similar-artist recommendations.** The album detail
+  page now shows a "More like this" row under the track list, and the
+  artist detail page shows a "Similar artists" row under the discography.
+  Each card carries the usual Request button and "In library" badge. New
+  endpoints `GET /api/album/:mbid/similar` and
+  `GET /api/artist/:mbid/similar` return enriched cards. Source strategy is
+  ListenBrainz collaborative-filtering primary (Labs `similar-artists`),
+  MusicBrainz artist relationships fallback, with per-source graceful
+  degradation (an empty row, never a 502). Album recommendations are
+  derived from the seed artist's similar artists. Results lean on the
+  existing client LRU caches (ListenBrainz/MusicBrainz, ~1h) so
+  recommendations are cheap to re-fetch. Closes #7.
+- **Cover-art / artist-image proxy + on-disk cache.** A new
+  `GET /api/image?src=<encoded-upstream-url>` endpoint fetches cover-art and
+  artist images server-side, caches the bytes on disk, and streams them back,
+  so images keep rendering when Cover Art Archive / the Last.fm CDN is slow or
+  unreachable. The cache lives under `IMAGE_CACHE_DIR` (defaults to
+  `/config/cache/images` in Docker), has a ~7-day TTL, and is size-capped with
+  LRU eviction at `IMAGE_CACHE_MAX_BYTES` (default 512 MiB). SSRF-safe: only
+  http(s) and only the hosts the app already renders from (Cover Art Archive,
+  MusicBrainz, the Last.fm CDN); non-image responses are rejected. The
+  frontend now references all cover-art / artist images through the proxy via a
+  small `proxiedImage()` helper. Closes #12.
 - **Library sync indicator.** Search, album/artist detail, and Discover
   cards now show a subtle "In library" badge for items already present in
   the configured Lidarr library, and the Request button is replaced with a
