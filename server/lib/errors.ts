@@ -153,3 +153,39 @@ export class RequestNotFoundError extends NotFoundError {
     super(message);
   }
 }
+
+/**
+ * Image-proxy errors (`/api/image`).
+ *
+ * `ImageSourceNotAllowedError` is thrown when a `src` fails the SSRF
+ * allowlist (wrong scheme or a host the app never legitimately renders).
+ * It maps to a 400 because the request is malformed from the client's point
+ * of view, not a server fault.
+ */
+export class ImageSourceNotAllowedError extends AppError {
+  constructor(message = 'Image source is not allowed') {
+    super(message, 400, 'IMAGE_SOURCE_NOT_ALLOWED');
+  }
+}
+
+/**
+ * Thrown when the upstream image fetch fails (network error, timeout, or a
+ * non-2xx status). Maps to 502 — the proxy itself is fine, the upstream is
+ * not.
+ */
+export class ImageUpstreamError extends AppError {
+  constructor(message = 'Upstream image fetch failed') {
+    super(message, 502, 'IMAGE_UPSTREAM_ERROR');
+  }
+}
+
+/**
+ * Thrown when the upstream responds 2xx but the payload is not an image
+ * (e.g. an HTML error page). Refusing non-image content types keeps the
+ * proxy from being abused as a generic fetch relay.
+ */
+export class ImageNotAnImageError extends AppError {
+  constructor(message = 'Upstream response is not an image') {
+    super(message, 502, 'IMAGE_NOT_AN_IMAGE');
+  }
+}
