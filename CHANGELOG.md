@@ -44,8 +44,8 @@ and the project follows [Semantic Versioning](https://semver.org/).
   the full "Groove" icon set from the mark — `favicon.ico`, SVG favicon,
   192/512 + maskable PWA icons, apple-touch icon, `site.webmanifest`, and a
   1200×630 OG/social card — and wired them into the document head, replacing
-  the old `overhearr.png`. (Self-hosted `.woff2` font files still need to be
-  dropped into `public/fonts/`; the UI uses fallback faces until then.)
+  the old `overhearr.png`. Vendored the self-hosted brand fonts (Fraunces 600,
+  Inter 400/600; OFL, latin-subset `.woff2`) under `public/fonts/`.
 - **Discover sources rewritten.** Last.fm retired the `chart.gettopalbums`
   and `geo.gettopalbums` endpoints (silently — they return method-not-found
   for any new key), so two of the three Discover rows had been permanently

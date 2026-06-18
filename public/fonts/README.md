@@ -4,20 +4,25 @@ The brand direction "Groove" (issue #15) pairs **Fraunces** (display) with
 **Inter** (body). Both are self-hosted here as `.woff2` rather than loaded from a
 font CDN, because the production CSP blocks external font hosts.
 
-`src/styles/globals.css` declares `@font-face` for the files below. Until the
-files are committed, the `@font-face` rules resolve to nothing and the
-`--font-display` / `--font-body` token stacks fall back gracefully (Fraunces →
-`ui-serif, Georgia, …`; Inter → `ui-sans-serif, system-ui, …`), so the UI is
-never broken — it just renders in the fallback faces.
+`src/styles/globals.css` declares `@font-face` for the files below. If a file
+is ever missing, the rule resolves to nothing and the `--font-display` /
+`--font-body` token stacks fall back gracefully (Fraunces → `ui-serif, Georgia,
+…`; Inter → `ui-sans-serif, system-ui, …`), so the UI is never broken — it just
+renders in the fallback faces.
 
-## Required files (follow-up — see PR for #15)
+## Vendored files
 
-| File                | Family    | Weight | Source                                                     |
-| ------------------- | --------- | ------ | ---------------------------------------------------------- |
-| `fraunces-600.woff2`| Fraunces  | 600    | https://fonts.google.com/specimen/Fraunces (OFL)          |
-| `inter-400.woff2`   | Inter     | 400    | https://fonts.google.com/specimen/Inter (OFL)             |
-| `inter-600.woff2`   | Inter     | 600    | https://fonts.google.com/specimen/Inter (OFL)             |
+Both families are **OFL-licensed**. The files here are the **latin subset**
+`.woff2` as served by the Google Fonts CSS2 API (English-only UI, so the latin
+subset is sufficient). To refresh, re-fetch the `/* latin */` block from the
+CSS URLs below with a modern-browser `User-Agent`, then download the `.woff2`.
 
-Generate subset `.woff2` (e.g. with `fonttools` / `glyphhanger` for a latin
-subset) and drop them in this directory. No code change is needed once the
-filenames match the table above.
+| File                 | Family   | Weight | Subset | Source CSS (CSS2 API)                                               |
+| -------------------- | -------- | ------ | ------ | ------------------------------------------------------------------ |
+| `fraunces-600.woff2` | Fraunces | 600    | latin  | `family=Fraunces:opsz,wght@9..144,600` (v38)                       |
+| `inter-400.woff2`    | Inter    | 400    | latin  | `family=Inter:wght@400` (v20)                                      |
+| `inter-600.woff2`    | Inter    | 600    | latin  | `family=Inter:wght@600` (v20)                                      |
+
+Licenses (SIL Open Font License 1.1):
+Fraunces — https://fonts.google.com/specimen/Fraunces/license ·
+Inter — https://fonts.google.com/specimen/Inter/license
