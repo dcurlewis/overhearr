@@ -92,6 +92,35 @@ describe('lib/api', () => {
     });
   });
 
+  it('unwraps the nested { error: { code, message } } shape the API returns', async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeResponse(409, { error: { code: 'SETUP_INCOMPLETE', message: 'Setup incomplete' } })
+    );
+    await expect(apiGet('/api/x')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 409,
+      code: 'SETUP_INCOMPLETE',
+      message: 'Setup incomplete',
+    });
+  });
+
+  it('surfaces the quota 429 code + friendly message for the toast path', async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeResponse(429, {
+        error: {
+          code: 'QUOTA_EXCEEDED',
+          message: 'You have reached your active request limit (50).',
+        },
+      })
+    );
+    await expect(apiPost('/api/requests/album', { mbid: 'x' })).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 429,
+      code: 'QUOTA_EXCEEDED',
+      message: 'You have reached your active request limit (50).',
+    });
+  });
+
   it('throws ApiError with default message when body has no message field', async () => {
     fetchMock.mockResolvedValueOnce(makeResponse(500, { foo: 'bar' }));
     try {
