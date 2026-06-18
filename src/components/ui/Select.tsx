@@ -34,10 +34,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         aria-describedby={helperText || error ? helpId : undefined}
         className={clsx(
           'rounded-md border bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]',
-          'focus:outline-none focus:ring-2 focus:ring-indigo-500/40',
+          'focus:outline-none focus:ring-2 focus:ring-[var(--accent)]',
           hasError
-            ? 'border-red-500/60 focus:border-red-500'
-            : 'border-[var(--border)] focus:border-indigo-500',
+            ? 'border-[var(--danger-border)] focus:border-[var(--danger)]'
+            : 'border-[var(--border)] focus:border-[var(--accent)]',
           className
         )}
         {...rest}
@@ -49,7 +49,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
           id={helpId}
           className={clsx(
             'text-xs',
-            hasError ? 'text-red-400' : 'text-[var(--text-muted)]'
+            hasError ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'
           )}
         >
           {error ?? helperText}

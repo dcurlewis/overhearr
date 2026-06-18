@@ -14,13 +14,13 @@ export interface ButtonProps
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    'bg-indigo-600 text-white hover:bg-indigo-500 focus-visible:ring-indigo-400',
+    'bg-[var(--accent)] text-[var(--accent-contrast)] hover:bg-[var(--accent-hover)] focus-visible:ring-[var(--accent)]',
   secondary:
-    'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--bg-input)] focus-visible:ring-indigo-400',
+    'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--bg-input)] focus-visible:ring-[var(--accent)]',
   ghost:
-    'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] focus-visible:ring-indigo-400',
+    'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] focus-visible:ring-[var(--accent)]',
   danger:
-    'bg-red-600 text-white hover:bg-red-500 focus-visible:ring-red-400',
+    'bg-[var(--danger)] text-white hover:opacity-90 focus-visible:ring-[var(--danger)]',
 };
 
 const SIZE: Record<ButtonSize, string> = {

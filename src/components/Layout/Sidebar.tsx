@@ -9,7 +9,7 @@ import {
   UsersIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
-import Image from 'next/image';
+import { Logo } from '../ui/Logo';
 import type { PublicUser } from '../../types/api';
 
 export interface SidebarNavItem {
@@ -42,18 +42,8 @@ export const Sidebar: React.FC<{
 
   return (
     <div className="flex h-full flex-col bg-[var(--bg-elevated)]">
-      <div className="flex h-16 items-center gap-3 border-b border-[var(--border)] px-5">
-        <Image
-          src="/overhearr.png"
-          alt="Overhearr"
-          width={32}
-          height={32}
-          className="h-8 w-8"
-          priority
-        />
-        <span className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
-          Overhearr
-        </span>
+      <div className="flex h-16 items-center border-b border-[var(--border)] px-5">
+        <Logo />
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {items.map(({ href, label, icon: Icon }) => {
@@ -66,7 +56,7 @@ export const Sidebar: React.FC<{
               className={clsx(
                 'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
                 active
-                  ? 'bg-indigo-600/15 text-indigo-300'
+                  ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-[var(--text-primary)]'
               )}
             >
@@ -74,7 +64,7 @@ export const Sidebar: React.FC<{
                 className={clsx(
                   'h-5 w-5',
                   active
-                    ? 'text-indigo-300'
+                    ? 'text-[var(--accent)]'
                     : 'text-[var(--text-muted)] group-hover:text-[var(--text-primary)]'
                 )}
               />

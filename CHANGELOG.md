@@ -64,6 +64,23 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Brand refresh — "Groove" theme tokens + wordmark (partially addresses
+  #15).** Replaced the default indigo accent with the oxblood + warm-ivory
+  "Groove" palette (light and dark), promoted the hardcoded selection colour
+  and `.text-overhearr` gradient stops to CSS variables, and added semantic
+  state tokens (`--success` / `--warning` / `--danger` / `--info`, each with a
+  tinted `-bg` / `-border`) plus motion tokens (`--motion-duration` /
+  `--motion-ease`). Status badges, toasts, focus rings, links, and accents
+  across the UI now read from these tokens instead of inline Tailwind colour
+  utilities. Added a single-colour `currentColor` "Groove" wordmark/logo
+  lockup to the sidebar and auth screen, and wired self-hosted Fraunces
+  (display) + Inter (body) `@font-face` rules with graceful fallback stacks.
+  Dark-mode contrast verified to WCAG AA for body and muted text. Generated
+  the full "Groove" icon set from the mark — `favicon.ico`, SVG favicon,
+  192/512 + maskable PWA icons, apple-touch icon, `site.webmanifest`, and a
+  1200×630 OG/social card — and wired them into the document head, replacing
+  the old `overhearr.png`. Vendored the self-hosted brand fonts (Fraunces 600,
+  Inter 400/600; OFL, latin-subset `.woff2`) under `public/fonts/`.
 - **Discover sources rewritten.** Last.fm retired the `chart.gettopalbums`
   and `geo.gettopalbums` endpoints (silently — they return method-not-found
   for any new key), so two of the three Discover rows had been permanently

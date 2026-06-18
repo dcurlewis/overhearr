@@ -123,7 +123,7 @@ export const AdminStep: React.FC<AdminStepProps> = ({ onAdvance }) => {
           type="button"
           onClick={() => setShowPassword((s) => !s)}
           aria-label={showPassword ? 'Hide password' : 'Show password'}
-          className="absolute right-2 top-7 rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          className="absolute right-2 top-7 rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           {showPassword ? (
             <EyeSlashIcon className="h-5 w-5" />
@@ -147,7 +147,7 @@ export const AdminStep: React.FC<AdminStepProps> = ({ onAdvance }) => {
       {serverError && (
         <div
           role="alert"
-          className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger)]"
         >
           {serverError}
         </div>

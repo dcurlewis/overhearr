@@ -183,15 +183,15 @@ export default function AlbumPage(): JSX.Element {
               revalidateKeys={swrKey ? [swrKey] : []}
             />
             {failureHint && (
-              <p className="text-sm text-red-300">{failureHint}</p>
+              <p className="text-sm text-[var(--danger)]">{failureHint}</p>
             )}
           </div>
           {data.artistInLibrary && !data.inLibrary && (
             <div
               role="status"
-              className="mt-4 flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+              className="mt-4 flex items-start gap-3 rounded-lg border border-[var(--success-border)] bg-[var(--success-bg)] px-4 py-3 text-sm text-[var(--text-primary)]"
             >
-              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-300" />
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--success)]" />
               <span>
                 This artist is already in your library — but this album isn&apos;t
                 yet. Request it to add this release.
@@ -201,9 +201,9 @@ export default function AlbumPage(): JSX.Element {
           {showArtistBanner && (
             <div
               role="status"
-              className="mt-4 flex items-start gap-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100"
+              className="mt-4 flex items-start gap-3 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] px-4 py-3 text-sm text-[var(--text-primary)]"
             >
-              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-indigo-300" />
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--info)]" />
               <span>
                 You already requested this artist&apos;s full discography — this
                 album is being processed as part of that.

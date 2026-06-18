@@ -63,7 +63,7 @@ export default function SettingsPage(): JSX.Element {
   if (settingsError) {
     return (
       <Card>
-        <div className="flex items-center gap-2 text-red-300">
+        <div className="flex items-center gap-2 text-[var(--danger)]">
           <ExclamationTriangleIcon className="h-5 w-5" />
           <span>
             Could not load settings:{' '}
@@ -112,7 +112,7 @@ export default function SettingsPage(): JSX.Element {
               value={
                 <span
                   className={
-                    health.db === 'ok' ? 'text-emerald-300' : 'text-red-300'
+                    health.db === 'ok' ? 'text-[var(--success)]' : 'text-[var(--danger)]'
                   }
                 >
                   {health.db === 'ok' ? (
@@ -128,9 +128,9 @@ export default function SettingsPage(): JSX.Element {
               label="Lidarr"
               value={
                 health.lidarrConfigured ? (
-                  <span className="text-emerald-300">Configured</span>
+                  <span className="text-[var(--success)]">Configured</span>
                 ) : (
-                  <span className="text-amber-300">Not configured</span>
+                  <span className="text-[var(--warning)]">Not configured</span>
                 )
               }
             />

@@ -46,7 +46,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
       href={href}
       title={titleAttr}
       className={clsx(
-        'group flex flex-col gap-2 rounded-lg p-2 transition hover:bg-[var(--bg-elevated)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+        'group flex flex-col gap-2 rounded-lg p-2 transition hover:bg-[var(--bg-elevated)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
         className
       )}
     >

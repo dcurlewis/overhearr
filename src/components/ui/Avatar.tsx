@@ -51,7 +51,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     <span
       aria-label={name}
       className={clsx(
-        'inline-flex items-center justify-center rounded-full bg-indigo-500/20 font-semibold text-indigo-200 ring-1 ring-indigo-500/30',
+        'inline-flex items-center justify-center rounded-full bg-[var(--accent-soft)] font-semibold text-[var(--accent)] ring-1 ring-[var(--accent-soft)]',
         SIZE[size],
         className
       )}

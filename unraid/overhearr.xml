@@ -29,7 +29,7 @@
   <Category>MediaApp:Music</Category>
   <WebUI>http://[IP]:[PORT:5056]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/dcurlewis/overhearr/main/unraid/overhearr.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/dcurlewis/overhearr/main/public/overhearr.png</Icon>
+  <Icon>https://raw.githubusercontent.com/dcurlewis/overhearr/main/public/icon-512.png</Icon>
   <ExtraParams>--restart unless-stopped</ExtraParams>
   <PostArgs/>
   <CPUset/>

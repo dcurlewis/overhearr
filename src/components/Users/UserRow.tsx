@@ -40,7 +40,7 @@ const ToggleSwitch: React.FC<{
     onClick={() => onChange(!checked)}
     className={clsx(
       'relative inline-flex h-5 w-9 items-center rounded-full transition',
-      checked ? 'bg-emerald-600' : 'bg-[var(--bg-input)] border border-[var(--border)]',
+      checked ? 'bg-[var(--success)]' : 'bg-[var(--bg-input)] border border-[var(--border)]',
       disabled && 'cursor-not-allowed opacity-50'
     )}
   >
@@ -120,8 +120,8 @@ const ActionMenu: React.FC<{
               'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm',
               itemDisabled && 'cursor-not-allowed opacity-50',
               active && !itemDisabled
-                ? 'bg-red-500/10 text-red-300'
-                : 'text-red-400'
+                ? 'bg-[var(--danger-bg)] text-[var(--danger)]'
+                : 'text-[var(--danger)]'
             )}
           >
             <TrashIcon className="h-4 w-4" /> Delete

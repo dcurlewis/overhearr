@@ -45,10 +45,10 @@ const ICONS: Record<ToastVariant, React.ComponentType<{ className?: string }>> =
 };
 
 const VARIANT_CLASSES: Record<ToastVariant, string> = {
-  success: 'border-emerald-500/40 text-emerald-300',
-  error: 'border-red-500/40 text-red-300',
-  info: 'border-indigo-500/40 text-indigo-300',
-  warning: 'border-amber-500/40 text-amber-300',
+  success: 'border-[var(--success-border)] text-[var(--success)]',
+  error: 'border-[var(--danger-border)] text-[var(--danger)]',
+  info: 'border-[var(--info-border)] text-[var(--info)]',
+  warning: 'border-[var(--warning-border)] text-[var(--warning)]',
 };
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

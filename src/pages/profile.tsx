@@ -142,7 +142,7 @@ export default function ProfilePage(): JSX.Element {
                 : undefined
             }
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
           <div className="flex justify-end">
             <Button
               type="submit"

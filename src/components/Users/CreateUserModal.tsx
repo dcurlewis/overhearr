@@ -101,7 +101,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           <option value="USER">User</option>
           <option value="ADMIN">Admin</option>
         </Select>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={handleClose} disabled={submitting}>
             Cancel

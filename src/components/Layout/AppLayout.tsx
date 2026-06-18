@@ -12,7 +12,7 @@ export interface AppLayoutProps {
 const FullScreenSpinner: React.FC = () => (
   <div className="flex min-h-screen items-center justify-center bg-[var(--bg-base)]">
     <svg
-      className="h-8 w-8 animate-spin text-indigo-400"
+      className="h-8 w-8 animate-spin text-[var(--accent)]"
       viewBox="0 0 24 24"
       aria-label="Loading"
     >

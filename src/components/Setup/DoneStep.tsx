@@ -66,7 +66,7 @@ export const DoneStep: React.FC<DoneStepProps> = ({ onBackToProfiles }) => {
     return (
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <svg
-          className="h-8 w-8 animate-spin text-indigo-400"
+          className="h-8 w-8 animate-spin text-[var(--accent)]"
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
@@ -98,7 +98,7 @@ export const DoneStep: React.FC<DoneStepProps> = ({ onBackToProfiles }) => {
       <div className="space-y-4">
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="flex items-start gap-2 rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger)]"
         >
           <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 flex-shrink-0" />
           <span>{errorMessage ?? 'Could not finalise setup.'}</span>
@@ -115,7 +115,7 @@ export const DoneStep: React.FC<DoneStepProps> = ({ onBackToProfiles }) => {
   return (
     <div className="flex flex-col items-center gap-3 py-6 text-center">
       <CheckCircleIcon
-        className="h-10 w-10 text-emerald-400"
+        className="h-10 w-10 text-[var(--success)]"
         aria-hidden="true"
       />
       <p className="text-base font-medium text-[var(--text-primary)]">

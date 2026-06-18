@@ -282,7 +282,7 @@ export const LidarrConfigCard: React.FC<LidarrConfigCardProps> = ({
           {testResult && (
             <span
               className={
-                testResult.ok ? 'text-emerald-300' : 'text-red-300'
+                testResult.ok ? 'text-[var(--success)]' : 'text-[var(--danger)]'
               }
             >
               {testResult.ok ? (
@@ -302,7 +302,7 @@ export const LidarrConfigCard: React.FC<LidarrConfigCardProps> = ({
         <hr className="border-[var(--border)]" />
 
         {profilesError && (
-          <p className="text-xs text-red-400">
+          <p className="text-xs text-[var(--danger)]">
             Could not load profiles:{' '}
             {profilesError instanceof ApiError
               ? profilesError.message
