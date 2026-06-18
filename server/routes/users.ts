@@ -50,6 +50,11 @@ const patchBodySchema = z
     password: z.string().min(1).optional(),
     role: UserRoleEnum.optional(),
     isActive: z.boolean().optional(),
+    // Per-user request-quota overrides. A positive integer sets an override;
+    // null clears it (the user then inherits the global default). See
+    // server/services/quotaService.ts for the resolution order.
+    quotaActiveLimit: z.number().int().positive().nullable().optional(),
+    quotaWeeklyLimit: z.number().int().positive().nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
     message: 'At least one field is required',
@@ -159,6 +164,12 @@ usersRouter.patch('/:id', async (req, res, next) => {
     }
     if (parsed.data.role) data.role = parsed.data.role;
     if (typeof parsed.data.isActive === 'boolean') data.isActive = parsed.data.isActive;
+    if (parsed.data.quotaActiveLimit !== undefined) {
+      data.quotaActiveLimit = parsed.data.quotaActiveLimit;
+    }
+    if (parsed.data.quotaWeeklyLimit !== undefined) {
+      data.quotaWeeklyLimit = parsed.data.quotaWeeklyLimit;
+    }
 
     // Self-deactivate guard.
     if (id === req.user.id && data.isActive === false) {

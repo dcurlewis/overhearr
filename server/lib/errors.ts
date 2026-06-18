@@ -47,6 +47,17 @@ export class ConflictError extends AppError {
 }
 
 /**
+ * Thrown when a non-admin user would exceed their request quota (active or
+ * weekly). Maps to HTTP 429 so the frontend can surface the friendly message
+ * in a toast. See server/services/quotaService.ts.
+ */
+export class QuotaExceededError extends AppError {
+  constructor(message = 'Request quota exceeded') {
+    super(message, 429, 'QUOTA_EXCEEDED');
+  }
+}
+
+/**
  * MusicBrainz client errors. These are thrown by the MusicBrainz client and
  * Cover Art Archive helpers; route handlers can either let them propagate
  * (the central error handler will translate them) or catch and substitute a

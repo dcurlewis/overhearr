@@ -32,6 +32,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   const [isActive, setIsActive] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState('');
+  // Empty string = inherit the global default (override cleared).
+  const [quotaActive, setQuotaActive] = useState<string>('');
+  const [quotaWeekly, setQuotaWeekly] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +45,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
       setIsActive(user.isActive);
       setShowPassword(startInPasswordReset);
       setPassword('');
+      setQuotaActive(user.quotaActiveLimit?.toString() ?? '');
+      setQuotaWeekly(user.quotaWeeklyLimit?.toString() ?? '');
       setError(null);
     }
   }, [startInPasswordReset, user]);
@@ -56,11 +61,34 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
     if (!user) return;
     setError(null);
 
+    // Empty string → null (inherit global default); otherwise a parsed int.
+    const parseQuota = (v: string): number | null => {
+      const t = v.trim();
+      return t === '' ? null : Number(t);
+    };
+    const nextQuotaActive = parseQuota(quotaActive);
+    const nextQuotaWeekly = parseQuota(quotaWeekly);
+    if (
+      (nextQuotaActive !== null &&
+        (!Number.isInteger(nextQuotaActive) || nextQuotaActive <= 0)) ||
+      (nextQuotaWeekly !== null &&
+        (!Number.isInteger(nextQuotaWeekly) || nextQuotaWeekly <= 0))
+    ) {
+      setError('Quota limits must be positive whole numbers (or empty to inherit).');
+      return;
+    }
+
     const body: Record<string, unknown> = {};
     if (username && username !== user.username) body.username = username;
     if (role !== user.role) body.role = role;
     if (isActive !== user.isActive) body.isActive = isActive;
     if (showPassword && password) body.password = password;
+    if (nextQuotaActive !== (user.quotaActiveLimit ?? null)) {
+      body.quotaActiveLimit = nextQuotaActive;
+    }
+    if (nextQuotaWeekly !== (user.quotaWeeklyLimit ?? null)) {
+      body.quotaWeeklyLimit = nextQuotaWeekly;
+    }
 
     if (Object.keys(body).length === 0) {
       setError('No changes to save.');
@@ -125,6 +153,29 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               You cannot deactivate your own account.
             </p>
           )}
+
+          <div className="space-y-3 rounded-md border border-[var(--border)] p-3">
+            <p className="text-xs text-[var(--text-muted)]">
+              Request quota overrides. Leave empty to inherit the global
+              default from Settings. Quotas do not apply to admins.
+            </p>
+            <Input
+              type="number"
+              min={1}
+              label="Max active requests"
+              placeholder="Inherit default"
+              value={quotaActive}
+              onChange={(e) => setQuotaActive(e.target.value)}
+            />
+            <Input
+              type="number"
+              min={1}
+              label="Max new requests per week"
+              placeholder="Inherit default"
+              value={quotaWeekly}
+              onChange={(e) => setQuotaWeekly(e.target.value)}
+            />
+          </div>
 
           <div className="rounded-md border border-[var(--border)] p-3">
             {!showPassword ? (

@@ -8,6 +8,18 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Per-user request quotas (optional).** Admins can cap how many requests
+  non-admin users make, along two independent axes: max simultaneous active
+  requests (`PENDING` + `PROCESSING`) and max new requests per rolling 7
+  days. Configured globally under Settings → Request quotas, with an
+  optional per-user override on the Users page. Resolution order is
+  per-user override → global default → unlimited (leaving a field empty
+  means unlimited). Enforcement runs at the request-create boundary before
+  any Lidarr call and returns HTTP 429 (`QUOTA_EXCEEDED`) with a friendly
+  message surfaced as a toast. Admins are always exempt. Adds nullable
+  `User.quotaActiveLimit` / `User.quotaWeeklyLimit` and
+  `Settings.defaultQuotaActiveLimit` / `Settings.defaultQuotaWeeklyLimit`
+  columns (additive migration). Closes #8.
 - **Library sync indicator.** Search, album/artist detail, and Discover
   cards now show a subtle "In library" badge for items already present in
   the configured Lidarr library, and the Request button is replaced with a
