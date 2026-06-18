@@ -41,6 +41,16 @@ export interface UpdateLidarrInput {
   metadataProfileId?: number;
 }
 
+/**
+ * Global default request-quota update. Each field is optional (omit to leave
+ * unchanged); an explicit `null` clears the default (= unlimited for that
+ * axis). See server/services/quotaService.ts for the resolution order.
+ */
+export interface UpdateQuotaInput {
+  defaultQuotaActiveLimit?: number | null;
+  defaultQuotaWeeklyLimit?: number | null;
+}
+
 function isHttpUrl(value: string): boolean {
   try {
     const u = new URL(value);
@@ -48,6 +58,21 @@ function isHttpUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Validate a quota-limit value: a positive integer, or `null` for unlimited.
+ * Returns the normalized value to persist.
+ */
+function normalizeQuotaLimit(
+  value: number | null,
+  field: string
+): number | null {
+  if (value === null) return null;
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new ValidationError(`${field} must be a positive integer or null`);
+  }
+  return value;
 }
 
 /**
@@ -163,6 +188,35 @@ export class SettingsService {
     // Lidarr connection details may have changed; force the client factory
     // to rebuild on next use.
     invalidateLidarrClient();
+    return updated;
+  }
+
+  /**
+   * Update the global default request quotas. Each axis accepts a positive
+   * integer (a limit) or `null` (unlimited). Omitted fields are untouched.
+   */
+  async updateQuotaSettings(input: UpdateQuotaInput): Promise<Settings> {
+    const data: Record<string, unknown> = {};
+
+    if (input.defaultQuotaActiveLimit !== undefined) {
+      data.defaultQuotaActiveLimit = normalizeQuotaLimit(
+        input.defaultQuotaActiveLimit,
+        'defaultQuotaActiveLimit'
+      );
+    }
+    if (input.defaultQuotaWeeklyLimit !== undefined) {
+      data.defaultQuotaWeeklyLimit = normalizeQuotaLimit(
+        input.defaultQuotaWeeklyLimit,
+        'defaultQuotaWeeklyLimit'
+      );
+    }
+
+    const updated = await prisma.settings.upsert({
+      where: { id: 1 },
+      update: data,
+      create: { id: 1, ...data },
+    });
+    this.cache = updated;
     return updated;
   }
 

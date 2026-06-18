@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
 import { LidarrConfigCard } from '../components/Settings/LidarrConfigCard';
+import { QuotaSettingsCard } from '../components/Settings/QuotaSettingsCard';
 import { useRouteGuard } from '../hooks/useRouteGuard';
 import { ApiError, swrFetcher } from '../lib/api';
 import { formatUptime } from '../utils/formatters';
@@ -21,6 +22,8 @@ interface LidarrSettingsView {
   lidarrQualityProfileId: number | null;
   lidarrMetadataProfileId: number | null;
   setupCompleted: boolean;
+  defaultQuotaActiveLimit: number | null;
+  defaultQuotaWeeklyLimit: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -140,6 +143,11 @@ export default function SettingsPage(): JSX.Element {
       <LidarrConfigCard
         settings={settings}
         onSaved={handleSettingsSaved}
+      />
+
+      <QuotaSettingsCard
+        settings={settings}
+        onSaved={mutateSettings}
       />
     </div>
   );

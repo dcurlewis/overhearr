@@ -8,6 +8,18 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Per-user request quotas (optional).** Admins can cap how many requests
+  non-admin users make, along two independent axes: max simultaneous active
+  requests (`PENDING` + `PROCESSING`) and max new requests per rolling 7
+  days. Configured globally under Settings → Request quotas, with an
+  optional per-user override on the Users page. Resolution order is
+  per-user override → global default → unlimited (leaving a field empty
+  means unlimited). Enforcement runs at the request-create boundary before
+  any Lidarr call and returns HTTP 429 (`QUOTA_EXCEEDED`) with a friendly
+  message surfaced as a toast. Admins are always exempt. Adds nullable
+  `User.quotaActiveLimit` / `User.quotaWeeklyLimit` and
+  `Settings.defaultQuotaActiveLimit` / `Settings.defaultQuotaWeeklyLimit`
+  columns (additive migration). Closes #8.
 - **Similar-album and similar-artist recommendations.** The album detail
   page now shows a "More like this" row under the track list, and the
   artist detail page shows a "Similar artists" row under the discography.

@@ -96,7 +96,11 @@ requestsRouter.post('/album', requireCsrfHeader, async (req, res, next) => {
         parsed.error.issues[0]?.message ?? 'Invalid request body'
       );
     }
-    const row = await createAlbumRequest(req.user.id, parsed.data.mbid);
+    const row = await createAlbumRequest(
+      req.user.id,
+      parsed.data.mbid,
+      req.user.role === 'ADMIN'
+    );
     res.status(200).json(row);
   } catch (err) {
     next(err);
@@ -112,7 +116,11 @@ requestsRouter.post('/artist', requireCsrfHeader, async (req, res, next) => {
         parsed.error.issues[0]?.message ?? 'Invalid request body'
       );
     }
-    const row = await createArtistRequest(req.user.id, parsed.data.mbid);
+    const row = await createArtistRequest(
+      req.user.id,
+      parsed.data.mbid,
+      req.user.role === 'ADMIN'
+    );
     res.status(200).json(row);
   } catch (err) {
     next(err);

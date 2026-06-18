@@ -36,6 +36,8 @@ interface RedactedSettings {
   lidarrQualityProfileId: number | null;
   lidarrMetadataProfileId: number | null;
   setupCompleted: boolean;
+  defaultQuotaActiveLimit: number | null;
+  defaultQuotaWeeklyLimit: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,6 +64,8 @@ function toRedacted(s: Settings): RedactedSettings {
     lidarrQualityProfileId: s.lidarrQualityProfileId,
     lidarrMetadataProfileId: s.lidarrMetadataProfileId,
     setupCompleted: s.setupCompleted,
+    defaultQuotaActiveLimit: s.defaultQuotaActiveLimit,
+    defaultQuotaWeeklyLimit: s.defaultQuotaWeeklyLimit,
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
   };
@@ -192,6 +196,37 @@ settingsRouter.get('/lidarr/profiles', async (_req, res, next) => {
       log.error({ err }, 'unexpected error fetching lidarr profiles');
       throw err;
     }
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Each quota field accepts a positive integer (a limit) or null (unlimited).
+// `nullable()` lets the UI explicitly clear a default; omitting a field
+// leaves it untouched.
+const quotaPatchSchema = z
+  .object({
+    defaultQuotaActiveLimit: z.number().int().positive().nullable().optional(),
+    defaultQuotaWeeklyLimit: z.number().int().positive().nullable().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, {
+    message: 'At least one field is required',
+  });
+
+/**
+ * Update the global default request quotas. Admin-only + CSRF-protected
+ * (both enforced by the router-level middleware above).
+ */
+settingsRouter.patch('/quotas', async (req, res, next) => {
+  try {
+    const parsed = quotaPatchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new ValidationError(
+        parsed.error.issues[0]?.message ?? 'Invalid request body'
+      );
+    }
+    const updated = await settingsService.updateQuotaSettings(parsed.data);
+    res.json(toRedacted(updated));
   } catch (err) {
     next(err);
   }

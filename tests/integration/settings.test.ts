@@ -158,6 +158,69 @@ describe('settings router — admin GET/PATCH', () => {
 
 });
 
+describe('settings router — PATCH /quotas', () => {
+  let harness: ReturnType<typeof buildTestApp>;
+  beforeEach(async () => {
+    await clearDb();
+    harness = buildTestApp();
+  });
+  afterEach(() => harness.store.stopCleanup());
+
+  it('GET exposes the quota defaults (null initially)', async () => {
+    const admin = await provisionAdmin(harness);
+    const res = await admin.get('/api/settings');
+    expect(res.status).toBe(200);
+    expect(res.body.defaultQuotaActiveLimit).toBeNull();
+    expect(res.body.defaultQuotaWeeklyLimit).toBeNull();
+  });
+
+  it('sets and clears the global defaults', async () => {
+    const admin = await provisionAdmin(harness);
+    const set = await admin
+      .patch('/api/settings/quotas')
+      .set(CSRF)
+      .send({ defaultQuotaActiveLimit: 5, defaultQuotaWeeklyLimit: 10 });
+    expect(set.status).toBe(200);
+    expect(set.body.defaultQuotaActiveLimit).toBe(5);
+    expect(set.body.defaultQuotaWeeklyLimit).toBe(10);
+
+    const clear = await admin
+      .patch('/api/settings/quotas')
+      .set(CSRF)
+      .send({ defaultQuotaActiveLimit: null });
+    expect(clear.status).toBe(200);
+    expect(clear.body.defaultQuotaActiveLimit).toBeNull();
+    // Untouched field is preserved.
+    expect(clear.body.defaultQuotaWeeklyLimit).toBe(10);
+  });
+
+  it('rejects a non-positive limit', async () => {
+    const admin = await provisionAdmin(harness);
+    const res = await admin
+      .patch('/api/settings/quotas')
+      .set(CSRF)
+      .send({ defaultQuotaActiveLimit: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('rejects an empty body', async () => {
+    const admin = await provisionAdmin(harness);
+    const res = await admin.patch('/api/settings/quotas').set(CSRF).send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('non-admin gets 403', async () => {
+    const bob = await provisionUser(harness);
+    const res = await bob
+      .patch('/api/settings/quotas')
+      .set(CSRF)
+      .send({ defaultQuotaActiveLimit: 5 });
+    expect(res.status).toBe(403);
+  });
+});
+
 describe('settings router — POST /lidarr/test', () => {
   let harness: ReturnType<typeof buildTestApp>;
   beforeEach(async () => {

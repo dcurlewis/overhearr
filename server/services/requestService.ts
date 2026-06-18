@@ -40,6 +40,7 @@ import { getLogger } from '../lib/logger';
 import { getLidarrClient } from '../api/lidarr/factory';
 import type { LidarrClient } from '../api/lidarr';
 import { musicbrainz } from '../api/musicbrainz';
+import { assertWithinQuota } from './quotaService';
 import { settingsService } from './settingsService';
 import type {
   MusicRequestRow,
@@ -89,15 +90,20 @@ interface LidarrAttemptResult {
 
 export async function createAlbumRequest(
   userId: number,
-  mbid: string
+  mbid: string,
+  isAdmin = false
 ): Promise<MusicRequestRow> {
-  // 1. Idempotency short-circuit for non-terminal rows.
+  // 1. Idempotency short-circuit for non-terminal rows. Re-requesting an
+  //    in-flight row does not count against the quota, so this runs first.
   const existing = await prisma.musicRequest.findUnique({
     where: { userId_mbid_type: { userId, mbid, type: 'ALBUM' } },
   });
   if (existing && existing.status !== 'FAILED') {
     return toMusicRequestRow(existing);
   }
+
+  // 2. Quota check — BEFORE any Lidarr call. No-op for admins / unlimited.
+  await assertWithinQuota(userId, isAdmin);
 
   return executeAlbumRequest(userId, mbid);
 }
@@ -282,7 +288,8 @@ async function runAddAlbum(
 
 export async function createArtistRequest(
   userId: number,
-  mbid: string
+  mbid: string,
+  isAdmin = false
 ): Promise<MusicRequestRow> {
   const existing = await prisma.musicRequest.findUnique({
     where: { userId_mbid_type: { userId, mbid, type: 'ARTIST' } },
@@ -290,6 +297,8 @@ export async function createArtistRequest(
   if (existing && existing.status !== 'FAILED') {
     return toMusicRequestRow(existing);
   }
+  // Quota check — BEFORE any Lidarr call. No-op for admins / unlimited.
+  await assertWithinQuota(userId, isAdmin);
   return executeArtistRequest(userId, mbid);
 }
 
