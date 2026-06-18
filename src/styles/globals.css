@@ -65,9 +65,11 @@
   --success: #2f7d54;
   --success-bg: rgba(47, 125, 84, 0.1);
   --success-border: rgba(47, 125, 84, 0.3);
-  --warning: #b8852a;
-  --warning-bg: rgba(184, 133, 42, 0.1);
-  --warning-border: rgba(184, 133, 42, 0.3);
+  /* Darkened from the brand amber #b8852a (3.1:1, AA-large only) to clear
+     WCAG AA-normal: #8a6418 is ~5.1:1 on --bg-base #faf8f5. */
+  --warning: #8a6418;
+  --warning-bg: rgba(138, 100, 24, 0.1);
+  --warning-border: rgba(138, 100, 24, 0.3);
   --danger: #b03333;
   --danger-bg: rgba(176, 51, 51, 0.1);
   --danger-border: rgba(176, 51, 51, 0.3);
