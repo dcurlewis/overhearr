@@ -159,6 +159,24 @@ export interface DiscoverPayload {
   newReleases: DiscoverAlbumWithStatus[];
 }
 
+// ---- Similar recommendations ----------------------------------------------
+
+/**
+ * "More like this" row on the album detail page. Each item is an album card
+ * carrying the same request-status / in-library enrichment as Discover, so the
+ * frontend Request button and "In library" badge work unchanged. `items` is
+ * empty (never an error) when both the ListenBrainz primary and MusicBrainz
+ * fallback sources degrade.
+ */
+export interface SimilarAlbumsPayload {
+  items: DiscoverAlbumWithStatus[];
+}
+
+/** "Similar artists" row on the artist detail page. */
+export interface SimilarArtistsPayload {
+  items: DiscoverArtistWithStatus[];
+}
+
 // ---- Music request rows ----------------------------------------------------
 
 /**

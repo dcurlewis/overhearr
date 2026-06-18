@@ -26,11 +26,14 @@ import { ListenBrainzUnreachableError } from '../../server/api/listenbrainz/erro
 
 import releaseGroupsFixture from '../__fixtures__/listenbrainz/sitewide-release-groups.json';
 import artistsFixture from '../__fixtures__/listenbrainz/sitewide-artists.json';
+import similarArtistsFixture from '../__fixtures__/listenbrainz/similar-artists.json';
 
 const BASE_URL = 'https://listenbrainz.test';
+const LABS_URL = 'https://labs.listenbrainz.test';
 
+type HandlerPath = 'release-groups' | 'artists' | 'similar-artists';
 type PathHandler = (req: Request, url: URL) => Response | Promise<Response>;
-let pathHandlers: Map<string, PathHandler>;
+let pathHandlers: Map<HandlerPath, PathHandler>;
 
 function buildServer(): ReturnType<typeof setupServer> {
   return setupServer(
@@ -44,6 +47,12 @@ function buildServer(): ReturnType<typeof setupServer> {
       const url = new URL(request.url);
       const handler = pathHandlers.get('artists');
       if (!handler) return HttpResponse.json({ payload: { artists: [] } });
+      return handler(request, url) as Response;
+    }),
+    http.get(`${LABS_URL}/similar-artists/json`, ({ request }) => {
+      const url = new URL(request.url);
+      const handler = pathHandlers.get('similar-artists');
+      if (!handler) return HttpResponse.json([]);
       return handler(request, url) as Response;
     })
   );
@@ -65,12 +74,13 @@ afterEach(() => {
 function buildClient(overrides: Partial<{ ttlMs: number }> = {}): ListenBrainzClient {
   return new ListenBrainzClient({
     baseUrl: BASE_URL,
+    labsBaseUrl: LABS_URL,
     cacheTtlMs: overrides.ttlMs ?? 60_000,
     timeoutMs: 2_000,
   });
 }
 
-function setHandler(path: 'release-groups' | 'artists', handler: PathHandler): void {
+function setHandler(path: HandlerPath, handler: PathHandler): void {
   pathHandlers.set(path, handler);
 }
 
@@ -175,5 +185,77 @@ describe('ListenBrainzClient — cache', () => {
     client.clearCache();
     await client.getTopReleaseGroups();
     expect(calls).toBe(2);
+  });
+});
+
+describe('ListenBrainzClient — getSimilarArtists', () => {
+  it('maps the fixture, drops rows without an mbid or name, and dedupes', async () => {
+    setHandler('similar-artists', () => HttpResponse.json(similarArtistsFixture));
+    const client = buildClient();
+    const artists = await client.getSimilarArtists(
+      '83d91898-7763-47d7-b03b-b92132375c47'
+    );
+    // Fixture has 4 rows: 2 usable, 1 missing mbid, 1 with empty name → 2 kept.
+    expect(artists).toHaveLength(2);
+    expect(artists[0]).toEqual({
+      mbid: 'b7ffd2af-418f-4be2-bdd1-22f8b48613da',
+      name: 'Nine Inch Nails',
+    });
+    expect(artists[1]!.name).toBe('Placebo');
+  });
+
+  it('sends the artist mbid + algorithm as query params', async () => {
+    let capturedMbid: string | null = null;
+    let capturedAlgo: string | null = null;
+    setHandler('similar-artists', (_req, url) => {
+      capturedMbid = url.searchParams.get('artist_mbids');
+      capturedAlgo = url.searchParams.get('algorithm');
+      return HttpResponse.json([]);
+    });
+    const client = buildClient();
+    await client.getSimilarArtists('seed-mbid');
+    expect(capturedMbid).toBe('seed-mbid');
+    expect(capturedAlgo).toMatch(/^session_based_/);
+  });
+
+  it('caps results at the requested count', async () => {
+    setHandler('similar-artists', () => HttpResponse.json(similarArtistsFixture));
+    const client = buildClient();
+    const artists = await client.getSimilarArtists('seed-mbid', { count: 1 });
+    expect(artists).toHaveLength(1);
+  });
+
+  it('excludes the seed artist if it appears in its own list', async () => {
+    setHandler('similar-artists', () =>
+      HttpResponse.json([
+        { artist_mbid: 'seed-mbid', name: 'Self' },
+        { artist_mbid: 'other-mbid', name: 'Other' },
+      ])
+    );
+    const client = buildClient();
+    const artists = await client.getSimilarArtists('seed-mbid');
+    expect(artists).toEqual([{ mbid: 'other-mbid', name: 'Other' }]);
+  });
+
+  it('tolerates the nested-array envelope shape', async () => {
+    setHandler('similar-artists', () =>
+      HttpResponse.json([
+        { some: 'metadata' },
+        [{ artist_mbid: 'nested-mbid', name: 'Nested' }],
+      ])
+    );
+    const client = buildClient();
+    const artists = await client.getSimilarArtists('seed-mbid');
+    expect(artists).toEqual([{ mbid: 'nested-mbid', name: 'Nested' }]);
+  });
+
+  it('throws ListenBrainzUnreachableError on non-2xx', async () => {
+    setHandler('similar-artists', () =>
+      HttpResponse.json({ message: 'down' }, { status: 503 })
+    );
+    const client = buildClient();
+    await expect(client.getSimilarArtists('seed-mbid')).rejects.toBeInstanceOf(
+      ListenBrainzUnreachableError
+    );
   });
 });

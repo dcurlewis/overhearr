@@ -1,0 +1,22 @@
+[
+  {
+    "artist_mbid": "b7ffd2af-418f-4be2-bdd1-22f8b48613da",
+    "name": "Nine Inch Nails",
+    "score": 1200
+  },
+  {
+    "artist_mbid": "847e8284-8582-4b0e-9c26-b042a4f49e57",
+    "name": "Placebo",
+    "score": 980
+  },
+  {
+    "artist_mbid": "",
+    "name": "No MBID Artist",
+    "score": 500
+  },
+  {
+    "artist_mbid": "9efff43b-3b29-4082-824e-bc82f646f93d",
+    "comment": "",
+    "score": 100
+  }
+]

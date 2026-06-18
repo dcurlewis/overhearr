@@ -15,7 +15,12 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { Badge } from '../../components/ui/Badge';
 import { RequestStatusBadge } from '../../components/ui/RequestStatusBadge';
 import { RequestButton } from '../../components/Music/RequestButton';
-import type { AlbumDetail, RequestStatusInfo } from '../../types/api';
+import { SimilarAlbumsRow } from '../../components/Music/SimilarRow';
+import type {
+  AlbumDetail,
+  RequestStatusInfo,
+  SimilarAlbumsPayload,
+} from '../../types/api';
 
 function formatDuration(ms: number | undefined): string {
   if (ms === undefined || !Number.isFinite(ms) || ms <= 0) return '–';
@@ -75,6 +80,15 @@ export default function AlbumPage(): JSX.Element {
 
   const swrKey = mbid ? `/api/album/${encodeURIComponent(mbid)}` : null;
   const { data, error, isLoading } = useSWR<AlbumDetail>(swrKey, swrFetcher);
+
+  // "More like this" loads independently so the album renders immediately and
+  // the recommendations stream in. Errors degrade silently — the route never
+  // 502s, but if the fetch itself fails we just don't render the row.
+  const similarKey = mbid
+    ? `/api/album/${encodeURIComponent(mbid)}/similar`
+    : null;
+  const { data: similar, isLoading: similarLoading } =
+    useSWR<SimilarAlbumsPayload>(similarKey, swrFetcher);
 
   if (!router.isReady || isLoading) {
     return (
@@ -229,6 +243,14 @@ export default function AlbumPage(): JSX.Element {
           </ol>
         )}
       </section>
+
+      {/* More like this */}
+      <SimilarAlbumsRow
+        title="More like this"
+        items={similar?.items}
+        isLoading={similarLoading}
+        revalidateKeys={similarKey ? [similarKey] : []}
+      />
     </div>
   );
 }

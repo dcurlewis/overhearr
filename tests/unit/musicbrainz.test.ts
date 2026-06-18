@@ -293,6 +293,71 @@ describe('MusicBrainzClient.searchArtists / getArtist', () => {
   });
 });
 
+describe('MusicBrainzClient.getRelatedArtists', () => {
+  const relationsBody = {
+    id: 'seed-artist',
+    name: 'Seed Artist',
+    'sort-name': 'Artist, Seed',
+    relations: [
+      {
+        type: 'collaboration',
+        artist: { id: 'rel-1', name: 'Collaborator', 'sort-name': 'Collaborator' },
+      },
+      // Noise relation type — dropped.
+      { type: 'label', artist: { id: 'label-1', name: 'A Label' } },
+      {
+        type: 'member of band',
+        artist: { id: 'rel-2', name: 'Bandmate' },
+      },
+      // Duplicate of rel-1 — deduped.
+      { type: 'influence', artist: { id: 'rel-1', name: 'Collaborator' } },
+      // Points back at the seed — excluded.
+      { type: 'collaboration', artist: { id: 'seed-artist', name: 'Seed Artist' } },
+      // No artist payload — skipped.
+      { type: 'collaboration' },
+    ],
+  };
+
+  it('keeps musically-relevant relation types, dedupes, and drops the seed', async () => {
+    server.use(
+      http.get(`${MB_BASE}/artist/:mbid`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('inc') === 'artist-rels') {
+          return HttpResponse.json(relationsBody);
+        }
+        return HttpResponse.json(artistDiscography);
+      })
+    );
+    const client = makeClient();
+    const related = await client.getRelatedArtists('seed-artist');
+    expect(related.map((a) => a.mbid)).toEqual(['rel-1', 'rel-2']);
+    expect(related[0]).toMatchObject({
+      mbid: 'rel-1',
+      name: 'Collaborator',
+      sortName: 'Collaborator',
+    });
+  });
+
+  it('caps results at the requested limit', async () => {
+    server.use(
+      http.get(`${MB_BASE}/artist/:mbid`, () => HttpResponse.json(relationsBody))
+    );
+    const client = makeClient();
+    const related = await client.getRelatedArtists('seed-artist', { limit: 1 });
+    expect(related).toHaveLength(1);
+  });
+
+  it('returns [] when the artist has no relations', async () => {
+    server.use(
+      http.get(`${MB_BASE}/artist/:mbid`, () =>
+        HttpResponse.json({ id: 'x', name: 'X' })
+      )
+    );
+    const client = makeClient();
+    await expect(client.getRelatedArtists('x')).resolves.toEqual([]);
+  });
+});
+
 describe('MusicBrainzClient: rate limiting', () => {
   it('spaces consecutive calls by at least minIntervalMs', async () => {
     const client = makeClient({ minIntervalMs: 100, jitterMs: 0 });
