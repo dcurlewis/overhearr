@@ -478,7 +478,7 @@ function ScopeToggle({
           className={clsx(
             'rounded px-3 py-1 transition',
             value === opt
-              ? 'bg-indigo-600 text-white'
+              ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           )}
         >
@@ -537,7 +537,7 @@ function RequestDetailBody({ row }: { row: MusicRequestRow }): JSX.Element {
           <dt className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
             Error
           </dt>
-          <dd className="mt-1 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
+          <dd className="mt-1 rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] p-3 text-xs text-[var(--danger)]">
             {row.errorMessage}
           </dd>
         </div>

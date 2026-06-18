@@ -7,6 +7,7 @@ export { Card } from './Card';
 export { CoverArt } from './CoverArt';
 export { EmptyState } from './EmptyState';
 export { Input } from './Input';
+export { Logo, GrooveMark } from './Logo';
 export { Modal } from './Modal';
 export { Pagination } from './Pagination';
 export { RequestStatusBadge } from './RequestStatusBadge';

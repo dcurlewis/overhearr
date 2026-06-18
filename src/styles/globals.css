@@ -3,35 +3,130 @@
 @tailwind utilities;
 
 /*
- * Theme tokens.
+ * Brand fonts — self-hosted under public/fonts (no external font CDN; the
+ * deploy CSP blocks remote font hosts). Fraunces is the display face for the
+ * wordmark, section titles, and big numerals; Inter is the body face.
+ *
+ * NOTE: the .woff2 files are not committed yet — see the PR body. The
+ * @font-face declarations below degrade gracefully to the system stacks in
+ * --font-display / --font-body until the files land, so nothing breaks.
+ */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/fraunces-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/inter-600.woff2') format('woff2');
+}
+
+/*
+ * Theme tokens — brand direction "Groove" (oxblood + warm ivory).
  *
  * Light theme is the default. Dark overrides apply when the `dark` class is
  * present on <html> (Tailwind's `darkMode: 'class'`). The `_document.tsx`
  * inline script sets the class before React mounts, preventing FOUC.
+ *
+ * Semantic state tokens come as a triplet: `--<state>` (text/icon foreground),
+ * `--<state>-bg` (tinted fill) and `--<state>-border`. Components read these
+ * instead of inline Tailwind colour utilities.
  */
 :root {
-  --bg-base: #f6f7fb;
+  --bg-base: #faf8f5;
   --bg-elevated: #ffffff;
-  --bg-input: #f1f3f9;
-  --text-primary: #1f2433;
-  --text-secondary: #4a5061;
-  --text-muted: #8a90a3;
-  --border: #e2e5ee;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
+  --bg-input: #f1ede7;
+  --text-primary: #16151a;
+  --text-secondary: #4a4750;
+  --text-muted: #6b6770;
+  --border: #e6e0d8;
+
+  --accent: #8a1f2b;
+  --accent-hover: #731822;
+  --accent-support: #c9743f;
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(138, 31, 43, 0.12);
+
+  /* Semantic state colours (light) */
+  --success: #2f7d54;
+  --success-bg: rgba(47, 125, 84, 0.1);
+  --success-border: rgba(47, 125, 84, 0.3);
+  --warning: #b8852a;
+  --warning-bg: rgba(184, 133, 42, 0.1);
+  --warning-border: rgba(184, 133, 42, 0.3);
+  --danger: #b03333;
+  --danger-bg: rgba(176, 51, 51, 0.1);
+  --danger-border: rgba(176, 51, 51, 0.3);
+  --info: #3a6ea5;
+  --info-bg: rgba(58, 110, 165, 0.1);
+  --info-border: rgba(58, 110, 165, 0.3);
+
+  /* Selection + wordmark gradient stops, promoted from hardcoded values */
+  --selection-bg: rgba(138, 31, 43, 0.25);
+  --selection-text: #16151a;
+  --wordmark-from: #8a1f2b;
+  --wordmark-to: #c9743f;
+
+  /* Motion */
+  --motion-duration: 200ms;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Font stacks (graceful fallback while .woff2 files are pending) */
+  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
   color-scheme: light;
 }
 
 html.dark {
-  --bg-base: #0e1019;
-  --bg-elevated: #161a26;
-  --bg-input: #1d2233;
-  --text-primary: #e8eaf2;
-  --text-secondary: #b6bcce;
-  --text-muted: #7a8092;
-  --border: #262b3a;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
+  --bg-base: #17141a;
+  --bg-elevated: #211d25;
+  --bg-input: #2a252f;
+  --text-primary: #f3ece8;
+  --text-secondary: #c8bfc6;
+  --text-muted: #a39aa0;
+  --border: #352f3a;
+
+  --accent: #e0586a;
+  --accent-hover: #e87382;
+  --accent-support: #e6a05f;
+  --accent-contrast: #17141a;
+  --accent-soft: rgba(224, 88, 106, 0.16);
+
+  /* Semantic state colours (dark) — brighter AA-compliant variants of light,
+   * verified against --bg-base #17141a (see PR body for measured ratios). */
+  --success: #5fce92;
+  --success-bg: rgba(95, 206, 146, 0.12);
+  --success-border: rgba(95, 206, 146, 0.32);
+  --warning: #e2b85c;
+  --warning-bg: rgba(226, 184, 92, 0.12);
+  --warning-border: rgba(226, 184, 92, 0.32);
+  --danger: #f08a8a;
+  --danger-bg: rgba(240, 138, 138, 0.12);
+  --danger-border: rgba(240, 138, 138, 0.32);
+  --info: #7cb0e6;
+  --info-bg: rgba(124, 176, 230, 0.12);
+  --info-border: rgba(124, 176, 230, 0.32);
+
+  --selection-bg: rgba(224, 88, 106, 0.3);
+  --selection-text: #f3ece8;
+  --wordmark-from: #e0586a;
+  --wordmark-to: #e6a05f;
+
   color-scheme: dark;
 }
 
@@ -44,12 +139,12 @@ html.dark {
   body {
     background-color: var(--bg-base);
     color: var(--text-primary);
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-body);
   }
 
   ::selection {
-    background-color: rgba(99, 102, 241, 0.4);
-    color: #ffffff;
+    background-color: var(--selection-bg);
+    color: var(--selection-text);
   }
 
   /* Sleek scrollbar that adapts to the theme */
@@ -84,7 +179,16 @@ html.dark {
 }
 
 @layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
   .text-overhearr {
-    @apply bg-gradient-to-br from-indigo-400 to-purple-400 bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      to bottom right,
+      var(--wordmark-from),
+      var(--wordmark-to)
+    );
+    @apply bg-clip-text text-transparent;
   }
 }

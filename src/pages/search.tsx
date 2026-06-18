@@ -165,7 +165,7 @@ export default function SearchPage(): JSX.Element {
               className={clsx(
                 'rounded-md px-3 py-1 text-sm font-medium transition',
                 type === t
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               )}
             >

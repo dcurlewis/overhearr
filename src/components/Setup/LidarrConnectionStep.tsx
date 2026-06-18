@@ -207,7 +207,7 @@ export const LidarrConnectionStep: React.FC<LidarrConnectionStepProps> = ({
           type="button"
           onClick={() => setShowKey((s) => !s)}
           aria-label={showKey ? 'Hide API key' : 'Show API key'}
-          className="absolute right-2 top-7 rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          className="absolute right-2 top-7 rounded p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           {showKey ? (
             <EyeSlashIcon className="h-5 w-5" />
@@ -227,7 +227,7 @@ export const LidarrConnectionStep: React.FC<LidarrConnectionStepProps> = ({
           Test connection
         </Button>
         {testSuccess && (
-          <span className="inline-flex items-center gap-1.5 text-sm text-emerald-300">
+          <span className="inline-flex items-center gap-1.5 text-sm text-[var(--success)]">
             <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
             Connected
             {testSuccess.version
@@ -241,7 +241,7 @@ export const LidarrConnectionStep: React.FC<LidarrConnectionStepProps> = ({
       {testError && (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="flex items-start gap-2 rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger)]"
         >
           <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 flex-shrink-0" />
           <span>{testError}</span>
@@ -251,7 +251,7 @@ export const LidarrConnectionStep: React.FC<LidarrConnectionStepProps> = ({
       {serverError && (
         <div
           role="alert"
-          className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger)]"
         >
           {serverError}
         </div>

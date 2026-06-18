@@ -114,7 +114,7 @@ export const RequestRow: React.FC<RequestRowProps> = ({
               onClick={() => onDelete(row)}
               disabled={busy}
               leftIcon={<TrashIcon className="h-4 w-4" />}
-              className="text-red-400 hover:text-red-300"
+              className="text-[var(--danger)] hover:opacity-80"
             >
               Delete
             </Button>
@@ -188,7 +188,7 @@ export const RequestRow: React.FC<RequestRowProps> = ({
             disabled={busy}
             aria-label="Delete request"
             leftIcon={<TrashIcon className="h-4 w-4" />}
-            className="text-red-400 hover:text-red-300"
+            className="text-[var(--danger)] hover:opacity-80"
           >
             <span className="sr-only">Delete</span>
           </Button>

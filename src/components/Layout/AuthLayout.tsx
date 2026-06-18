@@ -1,6 +1,6 @@
 import React from 'react';
-import Image from 'next/image';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { GrooveMark } from '../ui/Logo';
 
 export interface AuthLayoutProps {
   children: React.ReactNode;
@@ -17,18 +17,11 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
     <div className="absolute right-4 top-4">
       <ThemeToggle />
     </div>
-    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-900/30 via-transparent to-purple-900/20" />
+    <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[var(--accent-soft)] via-transparent to-[var(--accent-soft)]" />
     <div className="w-full max-w-md">
       <div className="mb-8 flex flex-col items-center">
-        <Image
-          src="/overhearr.png"
-          alt="Overhearr"
-          width={56}
-          height={56}
-          priority
-          className="mb-3 h-14 w-14"
-        />
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <GrooveMark className="mb-3 h-14 w-14 text-[var(--accent)]" title="Overhearr" />
+        <h1 className="font-display text-2xl font-semibold tracking-tight">
           {title ?? 'Welcome to Overhearr'}
         </h1>
         {subtitle && (

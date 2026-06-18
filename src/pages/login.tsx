@@ -89,7 +89,7 @@ const LoginPage: NextPageWithLayout = () => {
       {serverError && (
         <div
           role="alert"
-          className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-md border border-[var(--danger-border)] bg-[var(--danger-bg)] px-3 py-2 text-sm text-[var(--danger)]"
         >
           {serverError}
         </div>

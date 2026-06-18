@@ -19,13 +19,26 @@ module.exports = {
         border: 'var(--border)',
         accent: 'var(--accent)',
         'accent-hover': 'var(--accent-hover)',
+        'accent-support': 'var(--accent-support)',
+        'accent-contrast': 'var(--accent-contrast)',
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        danger: 'var(--danger)',
+        info: 'var(--info)',
       },
       transitionProperty: {
         'max-height': 'max-height',
         width: 'width',
       },
+      transitionTimingFunction: {
+        brand: 'var(--motion-ease)',
+      },
+      transitionDuration: {
+        brand: 'var(--motion-duration)',
+      },
       fontFamily: {
         sans: ['Inter', ...defaultTheme.fontFamily.sans],
+        display: ['Fraunces', ...defaultTheme.fontFamily.serif],
       },
     },
   },

@@ -117,7 +117,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               checked={isActive}
               disabled={isSelf}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-elevated)] text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--accent)] focus:ring-[var(--accent)]"
             />
           </label>
           {isSelf && (
@@ -159,7 +159,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             )}
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={handleClose} disabled={submitting}>

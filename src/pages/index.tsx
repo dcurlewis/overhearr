@@ -95,9 +95,9 @@ export default function DiscoverPage(): JSX.Element {
   return (
     <div className="space-y-10">
       {/* Hero */}
-      <header className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-indigo-500/10 via-[var(--bg-elevated)] to-[var(--bg-elevated)] px-6 py-10 sm:px-10">
+      <header className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--accent-soft)] via-[var(--bg-elevated)] to-[var(--bg-elevated)] px-6 py-10 sm:px-10">
         <div className="flex items-center gap-3">
-          <SparklesIcon className="h-6 w-6 text-indigo-400" />
+          <SparklesIcon className="h-6 w-6 text-[var(--accent)]" />
           <span className="text-xs uppercase tracking-widest text-[var(--text-muted)]">
             Discover
           </span>

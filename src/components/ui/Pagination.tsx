@@ -66,7 +66,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             className={clsx(
               'h-8 min-w-[2rem] rounded-md px-2 text-sm transition',
               p === page
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-[var(--accent)] text-[var(--accent-contrast)]'
                 : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
             )}
           >

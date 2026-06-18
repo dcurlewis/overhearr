@@ -29,7 +29,7 @@ export default function Document() {
     <Html lang="en">
       <Head>
         <meta charSet="utf-8" />
-        <meta name="theme-color" content="#0e1019" />
+        <meta name="theme-color" content="#17141a" />
         <link rel="icon" href="/overhearr.png" />
         <link rel="preload" as="image" href="/overhearr.png" />
         {/* FOUC prevention for theme — must run before <Main /> hydrates */}

@@ -62,7 +62,7 @@ export const WizardShell: React.FC<WizardShellProps> = ({
                   className={clsx(
                     'hidden h-px flex-1 sm:block',
                     isComplete || isCurrent
-                      ? 'bg-indigo-500/60'
+                      ? 'bg-[var(--accent)]'
                       : 'bg-[var(--border)]'
                   )}
                 />
@@ -72,9 +72,9 @@ export const WizardShell: React.FC<WizardShellProps> = ({
                   className={clsx(
                     'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold transition-colors',
                     isComplete &&
-                      'border-indigo-500 bg-indigo-500 text-white',
+                      'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]',
                     isCurrent &&
-                      'border-indigo-500 bg-indigo-500/15 text-indigo-300',
+                      'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]',
                     !isComplete &&
                       !isCurrent &&
                       'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-muted)]'

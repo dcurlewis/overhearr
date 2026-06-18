@@ -10,10 +10,13 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 const VARIANT: Record<BadgeVariant, string> = {
   neutral:
     'bg-[var(--bg-input)] text-[var(--text-secondary)] border-[var(--border)]',
-  info: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30',
-  success: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
-  warning: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
-  danger: 'bg-red-500/10 text-red-300 border-red-500/30',
+  info: 'bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-border)]',
+  success:
+    'bg-[var(--success-bg)] text-[var(--success)] border-[var(--success-border)]',
+  warning:
+    'bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--warning-border)]',
+  danger:
+    'bg-[var(--danger-bg)] text-[var(--danger)] border-[var(--danger-border)]',
 };
 
 export const Badge: React.FC<BadgeProps> = ({

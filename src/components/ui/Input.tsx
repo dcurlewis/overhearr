@@ -30,10 +30,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <div
         className={clsx(
           'flex items-stretch overflow-hidden rounded-md border bg-[var(--bg-input)] transition',
-          'focus-within:ring-2 focus-within:ring-indigo-500/40',
+          'focus-within:ring-2 focus-within:ring-[var(--accent)]',
           hasError
-            ? 'border-red-500/60 focus-within:border-red-500'
-            : 'border-[var(--border)] focus-within:border-indigo-500'
+            ? 'border-[var(--danger-border)] focus-within:border-[var(--danger)]'
+            : 'border-[var(--border)] focus-within:border-[var(--accent)]'
         )}
       >
         {leftAddon && (
@@ -59,7 +59,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           id={helpId}
           className={clsx(
             'text-xs',
-            hasError ? 'text-red-400' : 'text-[var(--text-muted)]'
+            hasError ? 'text-[var(--danger)]' : 'text-[var(--text-muted)]'
           )}
         >
           {error ?? helperText}
