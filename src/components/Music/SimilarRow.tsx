@@ -143,12 +143,19 @@ export function SimilarArtistsRow({
             />
             {it.mbid && (
               <div className="px-1">
+                {/*
+                  Deliberately do NOT pass `inLibrary` to the artist-wide
+                  RequestButton. Artist `inLibrary` means "at least one album by
+                  this artist is in Lidarr", not "the full catalogue is" — so
+                  passing it would wrongly disable a discography request. The
+                  badge on ArtistCard still uses it. Mirrors the artist detail
+                  page (src/pages/artist/[mbid].tsx).
+                */}
                 <RequestButton
                   requestStatus={it.requestStatus ?? { exists: false }}
                   mbid={it.mbid}
                   kind="artist"
                   size="sm"
-                  inLibrary={it.inLibrary}
                   revalidateKeys={revalidateKeys}
                   compact
                 />
