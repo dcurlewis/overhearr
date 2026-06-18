@@ -8,6 +8,18 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Similar-album and similar-artist recommendations.** The album detail
+  page now shows a "More like this" row under the track list, and the
+  artist detail page shows a "Similar artists" row under the discography.
+  Each card carries the usual Request button and "In library" badge. New
+  endpoints `GET /api/album/:mbid/similar` and
+  `GET /api/artist/:mbid/similar` return enriched cards. Source strategy is
+  ListenBrainz collaborative-filtering primary (Labs `similar-artists`),
+  MusicBrainz artist relationships fallback, with per-source graceful
+  degradation (an empty row, never a 502). Album recommendations are
+  derived from the seed artist's similar artists. Results lean on the
+  existing client LRU caches (ListenBrainz/MusicBrainz, ~1h) so
+  recommendations are cheap to re-fetch. Closes #7.
 - **Cover-art / artist-image proxy + on-disk cache.** A new
   `GET /api/image?src=<encoded-upstream-url>` endpoint fetches cover-art and
   artist images server-side, caches the bytes on disk, and streams them back,

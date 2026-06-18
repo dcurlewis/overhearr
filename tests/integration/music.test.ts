@@ -17,6 +17,8 @@ import {
   it,
 } from 'vitest';
 
+import { listenbrainz } from '../../server/api/listenbrainz';
+import { musicbrainz } from '../../server/api/musicbrainz';
 import { prisma } from '../../server/db/prisma';
 import { settingsService } from '../../server/services/settingsService';
 
@@ -32,6 +34,7 @@ const CSRF = { 'x-overhearr-csrf': '1' };
 
 const MB = 'https://musicbrainz.org/ws/2';
 const CAA = 'https://coverartarchive.org';
+const LB_LABS = 'https://labs.api.listenbrainz.org';
 
 interface RGCounters {
   releaseGroupCAA: number;
@@ -65,6 +68,10 @@ afterAll(() => server.close());
 afterEach(() => {
   server.resetHandlers(...baseHandlers);
   counters.releaseGroupCAA = 0;
+  // Both upstream singletons cache aggressively; clear between cases so each
+  // test sees only its own msw handlers (see CLAUDE.md).
+  listenbrainz.clearCache();
+  musicbrainz.clearCache();
 });
 
 async function clearDb(): Promise<void> {
@@ -241,4 +248,185 @@ describe('GET /api/artist/:mbid', () => {
     );
     expect(withCover).toHaveLength(ARTIST_COVER_ART_CAP);
   }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// Similar recommendations
+
+// A small artist fixture factory so each similar artist yields a distinct
+// representative album (the service dedupes by release-group).
+function artistFixture(
+  id: string,
+  rgId: string,
+  title: string,
+  date: string
+): Record<string, unknown> {
+  return {
+    id,
+    name: `Artist ${id}`,
+    'sort-name': `Artist ${id}`,
+    'release-groups': [
+      {
+        id: rgId,
+        title,
+        'primary-type': 'Album',
+        'first-release-date': date,
+      },
+    ],
+  };
+}
+
+describe('GET /api/album/:mbid/similar', () => {
+  let harness: ReturnType<typeof buildTestApp>;
+  beforeEach(async () => {
+    await clearDb();
+    harness = buildTestApp();
+  });
+  afterEach(() => harness.store.stopCleanup());
+
+  it('401 unauthenticated', async () => {
+    const res = await harness.agent().get('/api/album/release-rainbows-001/similar');
+    expect(res.status).toBe(401);
+  });
+
+  it('derives album cards from the seed artist\'s similar artists (ListenBrainz primary)', async () => {
+    server.use(
+      http.get(`${LB_LABS}/similar-artists/json`, () =>
+        HttpResponse.json([
+          { artist_mbid: 'sim-1', name: 'Sim One' },
+          { artist_mbid: 'sim-2', name: 'Sim Two' },
+        ])
+      ),
+      http.get(`${MB}/artist/:mbid`, ({ params }) => {
+        if (params.mbid === 'sim-1') {
+          return HttpResponse.json(artistFixture('sim-1', 'rg-sim-1', 'Sim One Album', '2020-01-01'));
+        }
+        if (params.mbid === 'sim-2') {
+          return HttpResponse.json(artistFixture('sim-2', 'rg-sim-2', 'Sim Two Album', '2019-01-01'));
+        }
+        return HttpResponse.json(artistDiscography);
+      })
+    );
+
+    const admin = await provisionAdminAndComplete(harness);
+    const res = await admin.get('/api/album/release-rainbows-001/similar');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toMatch(/private/);
+    const mbids = res.body.items.map((it: { mbid: string }) => it.mbid);
+    expect(mbids).toEqual(['rg-sim-1', 'rg-sim-2']);
+    expect(res.body.items[0].name).toBe('Sim One Album');
+    expect(res.body.items[0].requestStatus).toEqual({ exists: false });
+  }, 20_000);
+
+  it('falls back to MusicBrainz relationships when ListenBrainz degrades', async () => {
+    server.use(
+      http.get(`${LB_LABS}/similar-artists/json`, () => HttpResponse.error()),
+      http.get(`${MB}/artist/:mbid`, ({ params, request }) => {
+        const url = new URL(request.url);
+        // Relationship lookup on the seed artist.
+        if (params.mbid === 'radiohead-mbid' && url.searchParams.get('inc') === 'artist-rels') {
+          return HttpResponse.json({
+            id: 'radiohead-mbid',
+            name: 'Radiohead',
+            relations: [
+              { type: 'collaboration', artist: { id: 'sim-rel', name: 'Related Band' } },
+            ],
+          });
+        }
+        if (params.mbid === 'sim-rel') {
+          return HttpResponse.json(artistFixture('sim-rel', 'rg-sim-rel', 'Related Album', '2021-01-01'));
+        }
+        return HttpResponse.json(artistDiscography);
+      })
+    );
+
+    const admin = await provisionAdminAndComplete(harness);
+    const res = await admin.get('/api/album/release-rainbows-001/similar');
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((it: { mbid: string }) => it.mbid)).toEqual(['rg-sim-rel']);
+  }, 20_000);
+
+  it('returns an empty row when every source degrades (never 502s)', async () => {
+    server.use(
+      http.get(`${LB_LABS}/similar-artists/json`, () => HttpResponse.error()),
+      http.get(`${MB}/artist/:mbid`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('inc') === 'artist-rels') {
+          return HttpResponse.error();
+        }
+        return HttpResponse.json(artistDiscography);
+      })
+    );
+    const admin = await provisionAdminAndComplete(harness);
+    const res = await admin.get('/api/album/release-rainbows-001/similar');
+    expect(res.status).toBe(200);
+    expect(res.body.items).toEqual([]);
+  }, 20_000);
+});
+
+describe('GET /api/artist/:mbid/similar', () => {
+  let harness: ReturnType<typeof buildTestApp>;
+  beforeEach(async () => {
+    await clearDb();
+    harness = buildTestApp();
+  });
+  afterEach(() => harness.store.stopCleanup());
+
+  it('returns ListenBrainz similar artists, enriched with request status', async () => {
+    server.use(
+      http.get(`${LB_LABS}/similar-artists/json`, () =>
+        HttpResponse.json([
+          { artist_mbid: 'sim-a', name: 'Similar A' },
+          { artist_mbid: 'sim-b', name: 'Similar B' },
+          { artist_mbid: '', name: 'No MBID' },
+        ])
+      )
+    );
+
+    const admin = await provisionAdminAndComplete(harness);
+    const userRow = await prisma.user.findFirstOrThrow();
+    await prisma.musicRequest.create({
+      data: {
+        userId: userRow.id,
+        type: 'ARTIST',
+        mbid: 'sim-a',
+        name: 'Similar A',
+        status: 'PROCESSING',
+      },
+    });
+
+    const res = await admin.get('/api/artist/radiohead-mbid/similar');
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((it: { mbid: string }) => it.mbid)).toEqual([
+      'sim-a',
+      'sim-b',
+    ]);
+    expect(res.body.items[0].requestStatus.exists).toBe(true);
+    expect(res.body.items[0].requestStatus.status).toBe('PROCESSING');
+    expect(res.body.items[1].requestStatus).toEqual({ exists: false });
+  }, 20_000);
+
+  it('falls back to MusicBrainz relationships when ListenBrainz is empty', async () => {
+    server.use(
+      http.get(`${LB_LABS}/similar-artists/json`, () => HttpResponse.json([])),
+      http.get(`${MB}/artist/:mbid`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get('inc') === 'artist-rels') {
+          return HttpResponse.json({
+            id: 'radiohead-mbid',
+            name: 'Radiohead',
+            relations: [
+              { type: 'member of band', artist: { id: 'mb-rel', name: 'Bandmate' } },
+            ],
+          });
+        }
+        return HttpResponse.json(artistDiscography);
+      })
+    );
+    const admin = await provisionAdminAndComplete(harness);
+    const res = await admin.get('/api/artist/radiohead-mbid/similar');
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((it: { mbid: string }) => it.mbid)).toEqual(['mb-rel']);
+    expect(res.body.items[0].name).toBe('Bandmate');
+  }, 20_000);
 });
