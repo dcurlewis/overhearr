@@ -63,8 +63,16 @@ const ALLOWED_HOSTS: ReadonlyArray<string> = [
   'coverartarchive.org',
   'musicbrainz.org',
   'lastfm.freetls.fastly.net',
+  // Cover Art Archive serves the actual image bytes via a 307 redirect to the
+  // Internet Archive (archive.org → ia######.us.archive.org), so these must be
+  // allowlisted too or every cover-art fetch would be rejected at the redirect.
+  'archive.org',
 ];
-const ALLOWED_HOST_SUFFIXES: ReadonlyArray<string> = ['.musicbrainz.org'];
+const ALLOWED_HOST_SUFFIXES: ReadonlyArray<string> = [
+  '.musicbrainz.org',
+  // ia######.us.archive.org — the CAA redirect target node pool.
+  '.archive.org',
+];
 
 export interface CachedImage {
   /** Absolute path to the cached blob on disk. */
@@ -158,7 +166,12 @@ export class ImageCacheService {
         'User-Agent': opts.userAgent ?? buildUserAgent(__dirname),
         Accept: 'image/*',
       },
-      // Classify status ourselves.
+      // Do NOT let axios auto-follow redirects: we follow them manually in
+      // `requestUpstream` so every hop is re-checked against the SSRF allowlist
+      // (CAA legitimately 307s to the Internet Archive; an allowlisted host
+      // must not be able to redirect us into a private/internal target).
+      maxRedirects: 0,
+      // Classify status ourselves (3xx is handled in the redirect loop).
       validateStatus: (s) => s >= 200 && s < 600,
     });
   }
@@ -259,9 +272,37 @@ export class ImageCacheService {
     return { body: Buffer.from(res.data), contentType };
   }
 
+  /**
+   * Fetch `url`, following redirects manually so every hop is re-validated
+   * against the SSRF allowlist. CAA 307s to the Internet Archive, so we must
+   * follow — but an allowlisted host must never be able to bounce us to a
+   * private/internal target. `assertAllowedImageUrl` throws
+   * `ImageSourceNotAllowedError` (→ HTTP 400) on a disallowed redirect target.
+   */
   private async requestUpstream(
     url: string
   ): Promise<AxiosResponse<ArrayBuffer>> {
+    const MAX_REDIRECTS = 5;
+    let target = url;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const res = await this.getRaw(target);
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers['location'];
+        if (typeof location !== 'string' || location.length === 0) {
+          throw new ImageUpstreamError(
+            `Redirect ${res.status} without a Location header`
+          );
+        }
+        // Resolve relative redirects against the current URL, then re-check.
+        target = assertAllowedImageUrl(new URL(location, target).toString());
+        continue;
+      }
+      return res;
+    }
+    throw new ImageUpstreamError('Too many redirects');
+  }
+
+  private async getRaw(url: string): Promise<AxiosResponse<ArrayBuffer>> {
     try {
       return await this.axios.get<ArrayBuffer>(url);
     } catch (err) {

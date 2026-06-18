@@ -42,6 +42,28 @@ const handlers = [
       headers: { 'Content-Type': 'text/html' },
     })
   ),
+  // An allowlisted host that redirects to a DISALLOWED internal host (SSRF).
+  http.get('https://coverartarchive.org/redirect-evil', () => {
+    upstreamHits += 1;
+    return new HttpResponse(null, {
+      status: 302,
+      headers: { Location: 'http://169.254.169.254/latest/meta-data' },
+    });
+  }),
+  // CAA's real behaviour: 307 to the Internet Archive, which IS allowlisted.
+  http.get('https://coverartarchive.org/redirect-ok', () => {
+    upstreamHits += 1;
+    return new HttpResponse(null, {
+      status: 307,
+      headers: { Location: 'https://ia800000.us.archive.org/cover.png' },
+    });
+  }),
+  http.get('https://ia800000.us.archive.org/cover.png', () => {
+    upstreamHits += 1;
+    return HttpResponse.arrayBuffer(new Uint8Array(PNG).buffer, {
+      headers: { 'Content-Type': 'image/png' },
+    });
+  }),
 ];
 
 const server = setupServer(...handlers);
@@ -126,6 +148,29 @@ describe('GET /api/image', () => {
     expect(second.headers['x-overhearr-image-cache']).toBe('HIT');
     // No second upstream round-trip.
     expect(upstreamHits).toBe(1);
+  });
+
+  it('400s when an allowlisted host redirects to a disallowed host (SSRF)', async () => {
+    const a = await provisionAdmin(harness);
+    const res = await a.get(
+      `/api/image?src=${encodeURIComponent('https://coverartarchive.org/redirect-evil')}`
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('IMAGE_SOURCE_NOT_ALLOWED');
+    // The first hop is fetched (302), but the internal target is never contacted.
+    expect(upstreamHits).toBe(1);
+  });
+
+  it('follows a redirect to an allowlisted host (CAA → Internet Archive)', async () => {
+    const a = await provisionAdmin(harness);
+    const res = await a.get(
+      `/api/image?src=${encodeURIComponent('https://coverartarchive.org/redirect-ok')}`
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('image/png');
+    expect(Buffer.from(res.body).equals(PNG)).toBe(true);
+    // Both hops were fetched: the 307 and the archive.org image.
+    expect(upstreamHits).toBe(2);
   });
 
   it('502s when the upstream returns a non-image content type', async () => {
