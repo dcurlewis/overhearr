@@ -20,6 +20,17 @@ and the project follows [Semantic Versioning](https://semver.org/).
   derived from the seed artist's similar artists. Results lean on the
   existing client LRU caches (ListenBrainz/MusicBrainz, ~1h) so
   recommendations are cheap to re-fetch. Closes #7.
+- **Cover-art / artist-image proxy + on-disk cache.** A new
+  `GET /api/image?src=<encoded-upstream-url>` endpoint fetches cover-art and
+  artist images server-side, caches the bytes on disk, and streams them back,
+  so images keep rendering when Cover Art Archive / the Last.fm CDN is slow or
+  unreachable. The cache lives under `IMAGE_CACHE_DIR` (defaults to
+  `/config/cache/images` in Docker), has a ~7-day TTL, and is size-capped with
+  LRU eviction at `IMAGE_CACHE_MAX_BYTES` (default 512 MiB). SSRF-safe: only
+  http(s) and only the hosts the app already renders from (Cover Art Archive,
+  MusicBrainz, the Last.fm CDN); non-image responses are rejected. The
+  frontend now references all cover-art / artist images through the proxy via a
+  small `proxiedImage()` helper. Closes #12.
 - **Library sync indicator.** Search, album/artist detail, and Discover
   cards now show a subtle "In library" badge for items already present in
   the configured Lidarr library, and the Request button is replaced with a

@@ -1,5 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
+import { proxiedImage } from '../../lib/image';
 
 export interface AvatarProps {
   name: string;
@@ -31,11 +32,12 @@ export const Avatar: React.FC<AvatarProps> = ({
   size = 'md',
   className,
 }) => {
-  if (src) {
+  const proxiedSrc = proxiedImage(src);
+  if (proxiedSrc) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- avatar image is small + dynamic
       <img
-        src={src}
+        src={proxiedSrc}
         alt={name}
         className={clsx(
           'rounded-full object-cover ring-1 ring-[var(--border)]',

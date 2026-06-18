@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { MusicalNoteIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import { proxiedImage } from '../../lib/image';
 
 export interface CoverArtProps {
   src?: string | null;
@@ -26,7 +27,10 @@ export const CoverArt: React.FC<CoverArtProps> = ({
 }) => {
   const [errored, setErrored] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const showImage = src && !errored;
+  // Route upstream cover-art through the on-disk image proxy so it keeps
+  // rendering when Cover Art Archive / the CDN is slow or down.
+  const proxiedSrc = proxiedImage(src);
+  const showImage = proxiedSrc && !errored;
 
   return (
     <div
@@ -42,10 +46,15 @@ export const CoverArt: React.FC<CoverArtProps> = ({
             <div className="absolute inset-0 animate-pulse bg-[var(--bg-input)]" />
           )}
           <Image
-            src={src}
+            src={proxiedSrc}
             alt={alt}
             fill
             sizes={sizes}
+            // The bytes are already cached + sized upstream by /api/image, and
+            // the Next image optimizer (which fetches server-side without the
+            // user's session cookie) can't reach our auth-gated proxy. Serve
+            // the proxied bytes directly instead.
+            unoptimized
             className={clsx(
               'object-cover transition-opacity duration-300',
               loaded ? 'opacity-100' : 'opacity-0'

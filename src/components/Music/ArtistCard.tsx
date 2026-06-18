@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { RequestStatusBadge } from '../ui/RequestStatusBadge';
+import { proxiedImage } from '../../lib/image';
 import type { RequestStatusInfo } from '../../types/api';
 
 export interface ArtistCardProps {
@@ -36,6 +37,10 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
 
   const titleAttr = mbid ? undefined : 'Search to find this artist';
 
+  // Route the artist image through the on-disk proxy so it survives upstream
+  // (Last.fm CDN) flakiness.
+  const proxiedImageUrl = proxiedImage(imageUrl);
+
   return (
     <Link
       href={href}
@@ -46,11 +51,11 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({
       )}
     >
       <div className="relative aspect-square w-full overflow-hidden rounded-full bg-[var(--bg-input)]">
-        {imageUrl ? (
+        {proxiedImageUrl ? (
           // Round image fallback uses Avatar's <img> path for simplicity.
           // eslint-disable-next-line @next/next/no-img-element -- rounded artist avatar
           <img
-            src={imageUrl}
+            src={proxiedImageUrl}
             alt={name}
             className="h-full w-full object-cover transition group-hover:-translate-y-0.5"
           />
