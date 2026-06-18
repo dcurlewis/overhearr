@@ -118,11 +118,13 @@ export async function installApiMocks(
     requestedArtists: new Set<string>(),
   };
 
-  // ---------- Cover art / next/image / remote images ---------------------
-  // Next.js dev's image optimizer fetches remote images server-side, which
-  // hangs the request when the test machine can't reach lastfm/CAA. Stub
-  // both the client-facing /_next/image proxy AND any direct external image
-  // hits with a 1x1 transparent PNG so cards render instantly.
+  // ---------- Cover art / remote images ----------------------------------
+  // The frontend routes every cover-art / artist image through the server-side
+  // proxy at `/api/image?src=...` (see src/lib/image.ts). In e2e that endpoint
+  // would otherwise fetch the real upstream (CAA / Last.fm CDN) on the dev
+  // server and hang when the test machine can't reach it. Stub `/api/image`
+  // with a 1x1 transparent PNG so cards render instantly. The direct-host
+  // stubs remain as belt-and-braces for any image that slips through unproxied.
   const TINY_PNG = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
     'base64'
@@ -133,7 +135,7 @@ export async function installApiMocks(
       contentType: 'image/png',
       body: TINY_PNG,
     });
-  await page.route('**/_next/image**', fulfillImage);
+  await page.route('**/api/image**', fulfillImage);
   await page.route('https://coverartarchive.org/**', fulfillImage);
   await page.route('https://**.lastfm.freetls.fastly.net/**', fulfillImage);
   await page.route('https://lastfm.freetls.fastly.net/**', fulfillImage);

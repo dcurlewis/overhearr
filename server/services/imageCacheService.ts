@@ -53,8 +53,10 @@ const DEFAULT_MAX_BYTES_PER_IMAGE = 16 * 1024 * 1024; // refuse absurd payloads
 
 /**
  * Hosts we are willing to proxy. These are exactly the upstreams the
- * frontend renders images from today (see next.config.js `remotePatterns`).
- * Adding a new image source means adding it here AND to next.config.js.
+ * frontend renders images from today. This list is the single source of
+ * truth for the SSRF allowlist — adding a new image source means adding it
+ * here (the frontend routes everything through /api/image, so there is no
+ * next.config.js `remotePatterns` to keep in sync anymore).
  *
  * Entries are matched as either an exact host or a suffix match for the
  * wildcard MusicBrainz subdomains (`*.musicbrainz.org`).
