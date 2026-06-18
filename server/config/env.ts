@@ -42,6 +42,23 @@ const baseSchema = z.object({
     })
     .default('file:../config/db/overhearr.db'),
 
+  // Root directory for the on-disk image-proxy cache. In Docker this lives
+  // under the bind-mounted /config volume (mirrors how the SQLite DB lives
+  // under /config); a local dev checkout writes to `.cache/images` relative
+  // to CWD so we never need write access outside the repo.
+  IMAGE_CACHE_DIR: z
+    .string()
+    .min(1)
+    .default(NODE_ENV === 'production' ? '/config/cache/images' : '.cache/images'),
+
+  // Soft byte cap for the image cache. Once the on-disk total exceeds this,
+  // LRU eviction (oldest access time first) trims it back. Default 512 MiB.
+  IMAGE_CACHE_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(512 * 1024 * 1024),
+
   TRUST_PROXY: z
     .union([z.boolean(), z.string()])
     .transform((v) => {
